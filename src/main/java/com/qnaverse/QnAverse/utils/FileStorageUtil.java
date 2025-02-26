@@ -1,54 +1,61 @@
 package com.qnaverse.QnAverse.utils;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.UUID;
-
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Utility class for handling file uploads (profile pictures and media).
- */
+import java.io.IOException;
+import java.util.Map;
+
 @Component
 public class FileStorageUtil {
 
-    private static final String UPLOAD_DIR = "C:\\Users\\Suraj\\OneDrive\\Desktop\\qnaverse\\src\\main\\resources\\uploads\\";
+    // Cloudinary configuration
+    private final Cloudinary cloudinary;
+
+    public FileStorageUtil() {
+        cloudinary = new Cloudinary(ObjectUtils.asMap(
+                "cloud_name", "dtxm0dakw",  
+                "api_key", "746833368733947",     
+                "api_secret", "88zqe-DJvTHET7JTgIpS8W3hoBc" 
+        ));
+    }
 
     /**
-     * Saves a file to the local storage.
-     * Returns the unique filename stored, or null if empty.
+     * Saves a file to Cloudinary under the specified subdirectory.
+     * Returns the URL of the uploaded file.
      */
-    public String saveFile(MultipartFile file, String subDirectory) {
+    public String saveToCloudinary(MultipartFile file, String subDirectory) {
         try {
             if (file == null || file.isEmpty()) {
                 return null;
             }
 
-            // Generate unique filename
-            String uniqueFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            String filePath = UPLOAD_DIR + subDirectory + "/" + uniqueFileName;
+            // Upload file to Cloudinary
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                    "folder", subDirectory
+            ));
 
-            // Create directories if not exist
-            Files.createDirectories(Paths.get(UPLOAD_DIR + subDirectory));
-
-            // Save file
-            file.transferTo(new File(filePath));
-
-            return uniqueFileName;
+            // Return the URL of the uploaded file
+            return (String) uploadResult.get("secure_url");
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+            throw new RuntimeException("Failed to upload file to Cloudinary", e);
         }
     }
 
     /**
-     * Deletes a file from storage.
+     * Deletes a file from Cloudinary using its public ID.
      */
-    public boolean deleteFile(String fileName, String subDirectory) {
-        String filePath = UPLOAD_DIR + subDirectory + "/" + fileName;
-        File file = new File(filePath);
-        return file.exists() && file.delete();
+    public void deleteFromCloudinary(String mediaUrl) {
+        try {
+            // Extract the public ID from the URL (this assumes the URL contains the public ID as a part of the URL)
+            String publicId = mediaUrl.substring(mediaUrl.lastIndexOf("/") + 1, mediaUrl.lastIndexOf("."));
+            
+            // Perform the deletion from Cloudinary
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete file from Cloudinary", e);
+        }
     }
 }

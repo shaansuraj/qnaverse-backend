@@ -85,18 +85,43 @@ public class QuestionController {
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getQuestionDetails(@PathVariable Long id) {
         return questionService.getQuestionDetails(id);
-}
-
-
-@GetMapping("/{id}/likers")
-public ResponseEntity<List<User>> getQuestionLikers(@PathVariable Long id) {
-    try {
-        List<User> likers = questionService.getLikersForQuestion(id);
-        return ResponseEntity.ok(likers);
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
     }
-}
 
+    /**
+     * Retrieves the users who liked a particular question.
+     */
+    @GetMapping("/{id}/likers")
+    public ResponseEntity<List<User>> getQuestionLikers(@PathVariable Long id) {
+        try {
+            List<User> likers = questionService.getLikersForQuestion(id);
+            return ResponseEntity.ok(likers);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 
+    /**
+     * Edit an existing question (including media update if provided).
+     * The user can update the content, tags, and media of the question.
+     */
+    @PutMapping("/{username}/edit/{questionId}")
+    public ResponseEntity<?> editQuestion(
+            @PathVariable Long questionId,
+            @PathVariable String username,
+            @RequestPart("content") String content,
+            @RequestPart(value = "tags", required = false) String tagsStr,
+            @RequestPart(value = "media", required = false) MultipartFile media) {
+        
+        List<String> tags = null;
+        if (tagsStr != null && !tagsStr.isBlank()) {
+            try {
+                tags = objectMapper.readValue(tagsStr, new TypeReference<List<String>>() {});
+            } catch (Exception e) {
+                // If parsing fails, fall back to splitting by comma
+                tags = List.of(tagsStr.split(","));
+            }
+        }
+        
+        return questionService.editQuestion(questionId, content, tags, media, username);
+    }
 }

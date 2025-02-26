@@ -29,7 +29,7 @@ public class UserController {
     }
 
     /**
-     * Retrieves user profile details.
+     * Retrieves user profile details, including follower count, following count, and basic profile info.
      */
     @GetMapping("/{username}")
     public ResponseEntity<?> getUserProfile(@PathVariable String username) {
@@ -37,7 +37,8 @@ public class UserController {
     }
 
     /**
-     * Updates user profile details (non-file fields).
+     * Updates user profile details (excluding profile picture).
+     * Accepts JSON object with bio, Instagram URL, Github URL, and LinkedIn URL.
      */
     @PutMapping("/{username}/update")
     public ResponseEntity<?> updateUserProfile(@PathVariable String username, @RequestBody User updatedUser) {
@@ -45,7 +46,8 @@ public class UserController {
     }
 
     /**
-     * Returns all posts created by the user.
+     * Retrieves all posts (questions) created by the user.
+     * Optionally, checks if the viewer is blocked.
      */
     @GetMapping("/{username}/posts")
     public ResponseEntity<?> getUserPosts(@PathVariable String username,
@@ -55,7 +57,7 @@ public class UserController {
 
     /**
      * Updates the user's profile picture.
-     * Accepts a multipart file upload.
+     * Accepts a multipart file upload and handles it via Cloudinary.
      */
     @PostMapping(value = "/{username}/updateProfilePicture", consumes = "multipart/form-data")
     public ResponseEntity<?> updateProfilePicture(@PathVariable String username,

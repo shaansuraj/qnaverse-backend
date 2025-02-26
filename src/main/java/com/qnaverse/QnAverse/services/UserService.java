@@ -35,6 +35,7 @@ public class UserService {
         this.fileStorageUtil = fileStorageUtil;
     }
 
+    // Get User Profile (with follower and following counts)
     public ResponseEntity<?> getUserProfile(String username) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
@@ -49,6 +50,7 @@ public class UserService {
         return ResponseEntity.ok(response);
     }
 
+    // Update User Profile (excluding profile picture)
     public ResponseEntity<?> updateUserProfile(String username, User updatedUser) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
@@ -56,7 +58,6 @@ public class UserService {
         }
         User user = userOptional.get();
         user.setBio(updatedUser.getBio());
-        user.setProfilePicture(updatedUser.getProfilePicture());
         user.setInstagramUrl(updatedUser.getInstagramUrl());
         user.setGithubUrl(updatedUser.getGithubUrl());
         user.setLinkedinUrl(updatedUser.getLinkedinUrl());
@@ -64,6 +65,7 @@ public class UserService {
         return ResponseEntity.ok("Profile updated successfully");
     }
 
+    // Update Profile Picture with Cloudinary support
     public ResponseEntity<?> updateProfilePicture(String username, MultipartFile file) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
@@ -73,22 +75,22 @@ public class UserService {
             return ResponseEntity.badRequest().body("Invalid file");
         }
 
-        // Save the new profile picture
-        String fileName = fileStorageUtil.saveFile(file, "profile_pictures");
-
         User user = userOptional.get();
-        // Delete old profile picture if exists
+
+        // Delete old profile picture from Cloudinary if exists
         if (user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
-            fileStorageUtil.deleteFile(user.getProfilePicture(), "profile_pictures");
+            fileStorageUtil.deleteFromCloudinary(user.getProfilePicture());  // Delete old picture from Cloudinary
         }
 
-        // Update the profile picture field
-        user.setProfilePicture(fileName);
-        userRepository.save(user);
+        // Save the new profile picture to Cloudinary
+        String mediaUrl = fileStorageUtil.saveToCloudinary(file, "profile_pictures");
+        user.setProfilePicture(mediaUrl);  // Update the profile picture URL
+        userRepository.save(user);  // Save the updated user object with the new profile picture
 
         return ResponseEntity.ok("Profile picture updated successfully");
     }
 
+    // Get all questions posted by a user (with block check)
     public ResponseEntity<?> getUserQuestions(String username, String viewerUsername) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
@@ -100,16 +102,19 @@ public class UserService {
             Optional<User> viewerOpt = userRepository.findByUsername(viewerUsername);
             if (viewerOpt.isPresent()) {
                 User viewer = viewerOpt.get();
+                // Check if the viewer is blocked by the user or vice versa
                 if (blockingService.isBlockedEitherWay(viewer, theUser)) {
-                    return ResponseEntity.ok(List.of());
+                    return ResponseEntity.ok(List.of()); // Return empty if blocked
                 }
             }
         }
 
+        // Fetch questions posted by the user
         List<Question> all = questionRepository.findByUserIdsApproved(List.of(theUser.getId()));
-        return ResponseEntity.ok(all);
+        return ResponseEntity.ok(all); // Return list of approved questions
     }
 
+    // ProfileResponse is a helper class to format the profile response
     private static class ProfileResponse {
         public Long id;
         public String username;

@@ -32,7 +32,6 @@ import com.qnaverse.QnAverse.repositories.TagRepository;
 import com.qnaverse.QnAverse.repositories.UserRepository;
 import com.qnaverse.QnAverse.utils.FileStorageUtil;
 
-
 @Service
 public class QuestionService {
 
@@ -54,8 +53,7 @@ public class QuestionService {
                            QuestionTagRepository questionTagRepository,
                            FileStorageUtil fileStorageUtil,
                            NotificationService notificationService,
-                           LikeRepository likeRepository
-                           ) {
+                           LikeRepository likeRepository) {
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
         this.followRepository = followRepository;
@@ -81,9 +79,9 @@ public class QuestionService {
         question.setApproved(false); // Pending approval
         question.setCreatedAt(new Date());
 
-        // Handle media upload
+        // Handle media upload using Cloudinary
         if (media != null && !media.isEmpty()) {
-            String mediaUrl = fileStorageUtil.saveFile(media, "question_media");
+            String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
             question.setMediaUrl(mediaUrl);
         }
 
@@ -212,31 +210,82 @@ public class QuestionService {
         return ResponseEntity.ok(unapproved);
     }
 
+    /**
+     * Retrieves the details of a question, including media URL.
+     */
     public ResponseEntity<?> getQuestionDetails(Long id) {
-    Optional<Question> questionOpt = questionRepository.findById(id);
-    if (questionOpt.isPresent()) {
-        return ResponseEntity.ok(questionOpt.get());
+        Optional<Question> questionOpt = questionRepository.findById(id);
+        if (questionOpt.isPresent()) {
+            return ResponseEntity.ok(questionOpt.get());
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
     }
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
-}
 
-public List<User> getLikersForQuestion(Long questionId) {
-    // Fetch the question first
-    Optional<Question> questionOpt = questionRepository.findById(questionId);
-    if (questionOpt.isEmpty()) {
-        throw new ResourceNotFoundException("Question not found");
+    /**
+     * Retrieves the users who liked a particular question.
+     */
+    public List<User> getLikersForQuestion(Long questionId) {
+        Optional<Question> questionOpt = questionRepository.findById(questionId);
+        if (questionOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Question not found");
+        }
+        
+        Question question = questionOpt.get();
+        List<Like> likes = likeRepository.findByQuestion(question);
+        return likes.stream()
+                    .map(Like::getUser)
+                    .collect(Collectors.toList());
     }
-    
-    Question question = questionOpt.get();
-    
-    // Now fetch the likers from the 'likes' table
-    List<Like> likes = likeRepository.findByQuestion(question);
-    
-    // Map the likes to the users who liked the question
-    List<User> likers = likes.stream()
-                              .map(Like::getUser)  // Extract the user from the like entity
-                              .collect(Collectors.toList());
-    
-    return likers;
-}
+
+    /**
+     * Edit an existing question (including media update if provided).
+     */
+    public ResponseEntity<?> editQuestion(Long questionId, String content, List<String> tags, MultipartFile media, String username) {
+        Optional<Question> questionOpt = questionRepository.findById(questionId);
+        if (questionOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
+        }
+
+        Question question = questionOpt.get();
+        
+        // Check if the user is the one who posted the question
+        if (!question.getUser().getUsername().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
+        }
+
+        // Update content
+        question.setContent(content);
+
+        // Handle media update if provided
+        if (media != null && !media.isEmpty()) {
+            // Delete old media if it exists
+            if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
+                fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+            }
+
+            // Upload new media to Cloudinary
+            String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+            question.setMediaUrl(mediaUrl);
+        }
+
+        // Update tags if provided
+        if (tags != null && !tags.isEmpty()) {
+            questionTagRepository.deleteAll(question.getQuestionTags());
+            question.getQuestionTags().clear();
+            for (String tagStr : tags) {
+                Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+                if (found == null) {
+                    found = new Tag(tagStr.trim());
+                    found = tagRepository.save(found);
+                }
+                QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+                questionTagRepository.save(qt);
+                question.getQuestionTags().add(qt);
+            }
+        }
+
+        // Save the updated question
+        questionRepository.save(question);
+        return ResponseEntity.ok("Question edited successfully");
+    }
 }
