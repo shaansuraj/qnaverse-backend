@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.qnaverse.QnAverse.models.Follow;
 import com.qnaverse.QnAverse.models.User;
@@ -46,7 +47,8 @@ public class FollowService {
         notificationService.createNotification(following.getUsername(), "You have a new follower: " + follower.getUsername());
         return ResponseEntity.ok("Followed successfully");
     }
-
+    
+    @Transactional  // Added @Transactional annotation
     public ResponseEntity<?> unfollowUser(String followerUsername, String followingUsername) {
         Optional<User> followerOpt = userRepository.findByUsername(followerUsername);
         Optional<User> followingOpt = userRepository.findByUsername(followingUsername);

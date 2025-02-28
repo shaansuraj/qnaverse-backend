@@ -15,9 +15,6 @@ import com.qnaverse.QnAverse.models.BlockedUser;
 import com.qnaverse.QnAverse.services.BlockingService;
 import com.qnaverse.QnAverse.utils.JwtUtil;
 
-/**
- * Controller for blocking/unblocking users.
- */
 @RestController
 @RequestMapping("/api/block")
 public class BlockingController {

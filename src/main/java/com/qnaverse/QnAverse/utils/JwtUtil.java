@@ -30,7 +30,7 @@ public class JwtUtil {
      */
     public String generateToken(String username, String role) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(username) //main part of sigining process, for some cases you can use email as
                 .claim("role", role)  // Add role as a claim
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))

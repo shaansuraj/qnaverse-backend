@@ -1,17 +1,20 @@
 package com.qnaverse.QnAverse.controllers;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.qnaverse.QnAverse.models.User;
 import com.qnaverse.QnAverse.services.LikeService;
 import com.qnaverse.QnAverse.utils.JwtUtil;
 
-import java.util.List;
-import com.qnaverse.QnAverse.models.User;
-
-/**
- * Controller for liking/unliking questions.
- */
 @RestController
 @RequestMapping("/api/like")
 public class LikeController {
@@ -38,9 +41,6 @@ public class LikeController {
         return likeService.unlikeQuestion(username, questionId);
     }
 
-    /**
-     * NEW ENDPOINT: Returns a list of users who liked the question.
-     */
     @GetMapping("/question/{questionId}/likers")
     public ResponseEntity<?> getQuestionLikers(@PathVariable Long questionId) {
         List<User> likers = likeService.getQuestionLikers(questionId);

@@ -1,5 +1,6 @@
 package com.qnaverse.QnAverse.services;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.qnaverse.QnAverse.dto.ProfileResponse;
 import com.qnaverse.QnAverse.models.Question;
 import com.qnaverse.QnAverse.models.User;
 import com.qnaverse.QnAverse.repositories.FollowRepository;
@@ -35,22 +37,31 @@ public class UserService {
         this.fileStorageUtil = fileStorageUtil;
     }
 
-    // Get User Profile (with follower and following counts)
-    public ResponseEntity<?> getUserProfile(String username) {
+    // Get User Profile with follow/block flags using the viewer parameter
+    public ResponseEntity<?> getUserProfile(String username, String viewerUsername) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
             return ResponseEntity.badRequest().body("User not found");
         }
-        User user = userOptional.get();
-
-        long followerCount = followRepository.countByFollowing(user);
-        long followingCount = followRepository.countByFollower(user);
-
-        ProfileResponse response = new ProfileResponse(user, followerCount, followingCount);
+        User profileUser = userOptional.get();
+        boolean isFollowing = false;
+        boolean isBlocked = false;
+        if (viewerUsername != null && !viewerUsername.isBlank()) {
+            Optional<User> viewerOpt = userRepository.findByUsername(viewerUsername);
+            if (viewerOpt.isPresent()) {
+                User viewer = viewerOpt.get();
+                isFollowing = followRepository.findByFollowerAndFollowing(viewer, profileUser).isPresent();
+                isBlocked = blockingService.isBlockedEitherWay(viewer, profileUser);
+            }
+        }
+        ProfileResponse response = new ProfileResponse(profileUser,
+                followRepository.countByFollowing(profileUser),
+                followRepository.countByFollower(profileUser));
+        response.setIsFollowing(isFollowing);
+        response.setIsBlocked(isBlocked);
         return ResponseEntity.ok(response);
     }
 
-    // Update User Profile (excluding profile picture)
     public ResponseEntity<?> updateUserProfile(String username, User updatedUser) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
@@ -65,7 +76,6 @@ public class UserService {
         return ResponseEntity.ok("Profile updated successfully");
     }
 
-    // Update Profile Picture with Cloudinary support
     public ResponseEntity<?> updateProfilePicture(String username, MultipartFile file) {
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty()) {
@@ -74,72 +84,41 @@ public class UserService {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body("Invalid file");
         }
-
         User user = userOptional.get();
-
-        // Delete old profile picture from Cloudinary if exists
         if (user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
-            fileStorageUtil.deleteFromCloudinary(user.getProfilePicture());  // Delete old picture from Cloudinary
+            fileStorageUtil.deleteFromCloudinary(user.getProfilePicture());
         }
-
-        // Save the new profile picture to Cloudinary
         String mediaUrl = fileStorageUtil.saveToCloudinary(file, "profile_pictures");
-        user.setProfilePicture(mediaUrl);  // Update the profile picture URL
-        userRepository.save(user);  // Save the updated user object with the new profile picture
-
+        user.setProfilePicture(mediaUrl);
+        userRepository.save(user);
         return ResponseEntity.ok("Profile picture updated successfully");
     }
 
-    // Get all questions posted by a user (with block check)
+    // Updated: Return posts only if the viewer follows the profile (if not the same user)
     public ResponseEntity<?> getUserQuestions(String username, String viewerUsername) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("User not found");
         }
-        User theUser = userOpt.get();
-
+        User profileUser = userOpt.get();
         if (viewerUsername != null && !viewerUsername.isBlank()) {
             Optional<User> viewerOpt = userRepository.findByUsername(viewerUsername);
             if (viewerOpt.isPresent()) {
                 User viewer = viewerOpt.get();
-                // Check if the viewer is blocked by the user or vice versa
-                if (blockingService.isBlockedEitherWay(viewer, theUser)) {
-                    return ResponseEntity.ok(List.of()); // Return empty if blocked
+                // If viewer is not the profile owner, require a follow relationship
+                if (!viewer.getUsername().equals(profileUser.getUsername())) {
+                    boolean isFollowing = followRepository.findByFollowerAndFollowing(viewer, profileUser).isPresent();
+                    if (!isFollowing) {
+                        return ResponseEntity.ok(Collections.emptyList());
+                    }
+                }
+                // Check blocking status
+                if (blockingService.isBlockedEitherWay(viewer, profileUser)) {
+                    return ResponseEntity.ok(Collections.emptyList());
                 }
             }
         }
-
-        // Fetch questions posted by the user
-        List<Question> all = questionRepository.findByUserIdsApproved(List.of(theUser.getId()));
-        return ResponseEntity.ok(all); // Return list of approved questions
-    }
-
-    // ProfileResponse is a helper class to format the profile response
-    private static class ProfileResponse {
-        public Long id;
-        public String username;
-        public String email;
-        public String bio;
-        public String profilePicture;
-        public String instagramUrl;
-        public String githubUrl;
-        public String linkedinUrl;
-        public String role;
-        public long followerCount;
-        public long followingCount;
-
-        public ProfileResponse(User user, long followerCount, long followingCount) {
-            this.id = user.getId();
-            this.username = user.getUsername();
-            this.email = user.getEmail();
-            this.bio = user.getBio();
-            this.profilePicture = user.getProfilePicture();
-            this.instagramUrl = user.getInstagramUrl();
-            this.githubUrl = user.getGithubUrl();
-            this.linkedinUrl = user.getLinkedinUrl();
-            this.role = user.getRole().name();
-            this.followerCount = followerCount;
-            this.followingCount = followingCount;
-        }
+        List<Question> posts = questionRepository.findByUserIdsApproved(List.of(profileUser.getId()));
+        return ResponseEntity.ok(posts);
     }
 }

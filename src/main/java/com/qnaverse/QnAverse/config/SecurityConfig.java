@@ -72,8 +72,8 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/search/**").permitAll()
-                .requestMatchers("/api/question/trending/**").permitAll()
+
+           
 
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasAuthority("admin")
@@ -81,6 +81,8 @@ public class SecurityConfig {
 
                 // Authenticated endpoints
                 .requestMatchers("/api/block/**").hasAnyAuthority("user","admin")
+                .requestMatchers("/api/search/**").hasAnyAuthority("user","admin")
+                .requestMatchers("/api/question/trending/**").hasAnyAuthority("user","admin")
                 .requestMatchers("/api/follow/**").hasAnyAuthority("user","admin")
                 .requestMatchers("/api/notifications/**").hasAnyAuthority("user","admin")
                 .requestMatchers("/api/user/**").hasAnyAuthority("user","admin")
@@ -114,7 +116,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5174"));
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+    
+
         // configuration.setAllowedOrigins(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

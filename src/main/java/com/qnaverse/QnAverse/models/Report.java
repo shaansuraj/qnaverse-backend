@@ -1,7 +1,6 @@
 package com.qnaverse.QnAverse.models;
 
 import java.util.Date;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,6 +17,17 @@ import lombok.Setter;
 
 /**
  * Represents a report entity for reporting inappropriate content.
+ * 
+ * Database Columns:
+ *  - id: primary key
+ *  - user_id: the reporting user's id (required)
+ *  - question_id: (nullable) if content is a question
+ *  - answer_id: (nullable) if content is an answer
+ *  - reason: report reason
+ *  - created_at: timestamp
+ *  - content_id: id of the reported content (question/answer)
+ *  - content_type: "QUESTION" or "ANSWER"
+ *  - reported_by: id of the reporting user
  */
 @Getter
 @Setter
@@ -30,7 +40,12 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The user who reported
+    // The reporting user mapped to user_id column.
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // The reporting user mapped to reported_by column.
     @ManyToOne
     @JoinColumn(name = "reported_by", nullable = false)
     private User reportedBy;
@@ -43,15 +58,25 @@ public class Report {
     @Column(nullable = false)
     private String contentType;
 
-    // reason
+    // Report reason
     @Column(nullable = false)
     private String reason;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();
 
+    /**
+     * Constructs a new Report.
+     * Both user and reportedBy are set to the reporting user.
+     *
+     * @param reportedBy the reporting user
+     * @param contentId the id of the reported content
+     * @param contentType the type of content ("QUESTION" or "ANSWER")
+     * @param reason the reason for reporting
+     */
     public Report(User reportedBy, Long contentId, String contentType, String reason) {
         this.reportedBy = reportedBy;
+        this.user = reportedBy; // Set the user field so that user_id is populated.
         this.contentId = contentId;
         this.contentType = contentType;
         this.reason = reason;

@@ -58,6 +58,9 @@ public class Question {
 
     // We'll store an integer count for total likes to facilitate quick sorting
     private int likes = 0;
+    
+    @Column(name = "answer_count", nullable = false)
+    private int answerCount = 0;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();

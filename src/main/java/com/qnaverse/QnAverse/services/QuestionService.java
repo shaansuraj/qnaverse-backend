@@ -2,7 +2,6 @@ package com.qnaverse.QnAverse.services;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.qnaverse.QnAverse.dto.QuestionDTO;
 import com.qnaverse.QnAverse.exceptions.ResourceNotFoundException;
 import com.qnaverse.QnAverse.models.Like;
 import com.qnaverse.QnAverse.models.Question;
@@ -77,18 +77,14 @@ public class QuestionService {
         User user = userOptional.get();
         Question question = new Question(user, content);
         question.setApproved(false); // Pending approval
-        question.setCreatedAt(new Date());
+        question.setCreatedAt(new java.util.Date());
 
-        // Handle media upload using Cloudinary
         if (media != null && !media.isEmpty()) {
             String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
             question.setMediaUrl(mediaUrl);
         }
-
-        // Save the question
         questionRepository.save(question);
 
-        // Process tags if provided
         if (tags != null && !tags.isEmpty()) {
             for (String tagStr : tags) {
                 if (tagStr == null || tagStr.isBlank())
@@ -104,15 +100,11 @@ public class QuestionService {
             }
         }
 
-        // Parse content for @username mentions and notify the mentioned users
         notifyMentionedUsers(user, question);
 
         return ResponseEntity.ok("Question submitted for approval.");
     }
 
-    /**
-     * Parses the question content for @username mentions and sends notifications.
-     */
     private void notifyMentionedUsers(User asker, Question question) {
         Pattern pattern = Pattern.compile("@(\\w+)");
         Matcher matcher = pattern.matcher(question.getContent());
@@ -145,38 +137,78 @@ public class QuestionService {
 
     /**
      * Returns the feed for a user – combining questions from followed users and trending questions.
+     * Returns a Map with two keys: "followingQuestions" and "trendingQuestions", each as a List of QuestionDTO.
      */
     public ResponseEntity<?> getUserFeed(String username) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("User not found");
         }
-        User user = userOpt.get();
+        User currentUser = userOpt.get();
         List<Long> followedIds = new ArrayList<>();
-        followRepository.findByFollower(user).forEach(f -> {
-            if (!blockingService.isBlockedEitherWay(user, f.getFollowing())) {
+        followRepository.findByFollower(currentUser).forEach(f -> {
+            if (!blockingService.isBlockedEitherWay(currentUser, f.getFollowing())) {
                 followedIds.add(f.getFollowing().getId());
             }
         });
-        List<Question> followingQuestions = followedIds.isEmpty() ? Collections.emptyList() : questionRepository.findByUserIdsApproved(followedIds);
-        followingQuestions = filterBlocked(user, followingQuestions);
+        List<Question> followingQuestions = followedIds.isEmpty()
+                ? Collections.emptyList()
+                : questionRepository.findByUserIdsApproved(followedIds);
+        followingQuestions = filterBlocked(currentUser, followingQuestions);
 
         List<Question> trendingQuestions = questionRepository.findTrendingAll();
-        trendingQuestions = filterBlocked(user, trendingQuestions);
+        trendingQuestions = filterBlocked(currentUser, trendingQuestions);
         if (trendingQuestions.size() > 20) {
             trendingQuestions = trendingQuestions.subList(0, 20);
         }
 
+        List<QuestionDTO> followingDTOs = followingQuestions.stream()
+            .map(q -> createQuestionDTO(q, currentUser))
+            .collect(Collectors.toList());
+
+        List<QuestionDTO> trendingDTOs = trendingQuestions.stream()
+            .map(q -> createQuestionDTO(q, currentUser))
+            .collect(Collectors.toList());
+
         Map<String, Object> result = new HashMap<>();
-        result.put("followingQuestions", followingQuestions);
-        result.put("trendingQuestions", trendingQuestions);
+        result.put("followingQuestions", followingDTOs);
+        result.put("trendingQuestions", trendingDTOs);
 
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * Returns trending questions overall or filtered by tag.
-     */
+    private QuestionDTO createQuestionDTO(Question q, User currentUser) {
+        QuestionDTO dto = new QuestionDTO();
+        dto.setId(q.getId());
+        dto.setContent(q.getContent());
+        dto.setUsername(q.getUser().getUsername());
+        dto.setCreatedAt(q.getCreatedAt());
+        dto.setMediaUrl(q.getMediaUrl());
+        dto.setLikes(q.getLikes());
+        dto.setAnswerCount(q.getAnswerCount());
+        boolean hasLiked = likeRepository.findByUserAndQuestion(currentUser, q).isPresent();
+        dto.setUserHasLiked(hasLiked);
+        boolean isFollowing = followRepository.findByFollowerAndFollowing(currentUser, q.getUser()).isPresent();
+        dto.setIsFollowing(isFollowing);
+        boolean isBlocked = blockingService.isBlockedEitherWay(currentUser, q.getUser());
+        dto.setIsBlocked(isBlocked);
+        List<String> tags = q.getQuestionTags().stream()
+                .map(QuestionTag::getTags)
+                .collect(Collectors.toList());
+        dto.setTags(tags);
+        return dto;
+    }
+
+    private List<Question> filterBlocked(User viewer, List<Question> questions) {
+        List<Question> filtered = new ArrayList<>();
+        for (Question q : questions) {
+            if (!blockingService.isBlockedEitherWay(viewer, q.getUser())) {
+                filtered.add(q);
+            }
+        }
+        return filtered;
+    }
+
     public ResponseEntity<List<Question>> getTrendingQuestions(String tag) {
         List<Question> questions;
         if (tag != null && !tag.isBlank()) {
@@ -187,32 +219,6 @@ public class QuestionService {
         return ResponseEntity.ok(questions);
     }
 
-    /**
-     * Helper method to filter out questions from blocked users.
-     */
-    private List<Question> filterBlocked(User viewer, List<Question> questions) {
-        List<Question> filtered = new ArrayList<>();
-        for (Question q : questions) {
-            if (!blockingService.isBlockedEitherWay(viewer, q.getUser())) {
-                filtered.add(q);
-            }
-        }
-        return filtered;
-    }
-    
-    /**
-     * Retrieves unapproved questions for the admin dashboard.
-     */
-    public ResponseEntity<List<Question>> getUnapprovedQuestions() {
-        List<Question> unapproved = questionRepository.findAll().stream()
-                .filter(q -> !q.isApproved())
-                .toList();
-        return ResponseEntity.ok(unapproved);
-    }
-
-    /**
-     * Retrieves the details of a question, including media URL.
-     */
     public ResponseEntity<?> getQuestionDetails(Long id) {
         Optional<Question> questionOpt = questionRepository.findById(id);
         if (questionOpt.isPresent()) {
@@ -221,15 +227,11 @@ public class QuestionService {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
     }
 
-    /**
-     * Retrieves the users who liked a particular question.
-     */
     public List<User> getLikersForQuestion(Long questionId) {
         Optional<Question> questionOpt = questionRepository.findById(questionId);
         if (questionOpt.isEmpty()) {
             throw new ResourceNotFoundException("Question not found");
         }
-        
         Question question = questionOpt.get();
         List<Like> likes = likeRepository.findByQuestion(question);
         return likes.stream()
@@ -237,54 +239,44 @@ public class QuestionService {
                     .collect(Collectors.toList());
     }
 
-    /**
-     * Edit an existing question (including media update if provided).
-     */
     public ResponseEntity<?> editQuestion(Long questionId, String content, List<String> tags, MultipartFile media, String username) {
         Optional<Question> questionOpt = questionRepository.findById(questionId);
         if (questionOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
         }
-
         Question question = questionOpt.get();
-        
-        // Check if the user is the one who posted the question
         if (!question.getUser().getUsername().equals(username)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
         }
-
-        // Update content
         question.setContent(content);
-
-        // Handle media update if provided
         if (media != null && !media.isEmpty()) {
-            // Delete old media if it exists
             if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
                 fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
             }
-
-            // Upload new media to Cloudinary
             String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
             question.setMediaUrl(mediaUrl);
         }
-
-        // Update tags if provided
         if (tags != null && !tags.isEmpty()) {
-            questionTagRepository.deleteAll(question.getQuestionTags());
-            question.getQuestionTags().clear();
-            for (String tagStr : tags) {
-                Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+            // Use a Set to filter out duplicate tag names from the list
+            Set<String> uniqueTags = tags.stream()
+                                         .map(String::trim)
+                                         .filter(tag -> !tag.isBlank())
+                                         .collect(Collectors.toSet());
+            for (String tagStr : uniqueTags) {
+                // Check if the tag already exists
+                Tag found = tagRepository.findByTagNameIgnoreCase(tagStr).orElse(null);
                 if (found == null) {
-                    found = new Tag(tagStr.trim());
+                    // Only create a new tag if it doesn't exist
+                    found = new Tag(tagStr);
                     found = tagRepository.save(found);
                 }
+                // Create the association using the existing or newly created tag
                 QuestionTag qt = new QuestionTag(question, found, found.getTagName());
                 questionTagRepository.save(qt);
                 question.getQuestionTags().add(qt);
             }
         }
-
-        // Save the updated question
+        
         questionRepository.save(question);
         return ResponseEntity.ok("Question edited successfully");
     }

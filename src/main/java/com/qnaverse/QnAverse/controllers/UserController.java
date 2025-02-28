@@ -21,44 +21,30 @@ import com.qnaverse.QnAverse.services.UserService;
 public class UserController {
 
     private final UserService userService;
-    private final UserRepository userRepository; // Injected if needed
+    private final UserRepository userRepository; 
 
     public UserController(UserService userService, UserRepository userRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
     }
 
-    /**
-     * Retrieves user profile details, including follower count, following count, and basic profile info.
-     */
     @GetMapping("/{username}")
-    public ResponseEntity<?> getUserProfile(@PathVariable String username) {
-        return userService.getUserProfile(username);
+    public ResponseEntity<?> getUserProfile(@PathVariable String username,
+                                            @RequestParam(required = false) String viewer) {
+        return userService.getUserProfile(username, viewer);
     }
 
-    /**
-     * Updates user profile details (excluding profile picture).
-     * Accepts JSON object with bio, Instagram URL, Github URL, and LinkedIn URL.
-     */
     @PutMapping("/{username}/update")
     public ResponseEntity<?> updateUserProfile(@PathVariable String username, @RequestBody User updatedUser) {
         return userService.updateUserProfile(username, updatedUser);
     }
 
-    /**
-     * Retrieves all posts (questions) created by the user.
-     * Optionally, checks if the viewer is blocked.
-     */
     @GetMapping("/{username}/posts")
     public ResponseEntity<?> getUserPosts(@PathVariable String username,
                                           @RequestParam(required = false) String viewer) {
         return userService.getUserQuestions(username, viewer);
     }
 
-    /**
-     * Updates the user's profile picture.
-     * Accepts a multipart file upload and handles it via Cloudinary.
-     */
     @PostMapping(value = "/{username}/updateProfilePicture", consumes = "multipart/form-data")
     public ResponseEntity<?> updateProfilePicture(@PathVariable String username,
                                                   @RequestPart("file") MultipartFile file) {

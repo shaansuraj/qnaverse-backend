@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.qnaverse.QnAverse.services.FollowService;
 import com.qnaverse.QnAverse.utils.JwtUtil;
 
-/**
- * Controller for follow/unfollow operations.
- */
 @RestController
 @RequestMapping("/api/follow")
 public class FollowController {
