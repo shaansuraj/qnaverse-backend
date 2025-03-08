@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qnaverse.QnAverse.dto.QuestionDTO;
 import com.qnaverse.QnAverse.models.Question;
 import com.qnaverse.QnAverse.models.User;
 import com.qnaverse.QnAverse.services.QuestionService;
@@ -54,9 +55,12 @@ public class QuestionController {
     }
 
     @GetMapping("/trending")
-    public ResponseEntity<List<Question>> getTrendingQuestions(@RequestParam(required = false) String tag) {
-        return questionService.getTrendingQuestions(tag);
-    }
+public ResponseEntity<List<QuestionDTO>> getTrendingQuestions(
+    @RequestParam(required = false) String tag,
+    @RequestParam String viewerUsername) {
+    return questionService.getTrendingQuestionsDTO(tag, viewerUsername);
+}
+
 
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getQuestionDetails(@PathVariable Long id) {

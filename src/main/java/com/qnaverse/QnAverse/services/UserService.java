@@ -3,17 +3,21 @@ package com.qnaverse.QnAverse.services;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.qnaverse.QnAverse.dto.ProfileResponse;
+import com.qnaverse.QnAverse.dto.QuestionDTO;
 import com.qnaverse.QnAverse.models.Question;
+import com.qnaverse.QnAverse.models.QuestionTag;
 import com.qnaverse.QnAverse.models.User;
 import com.qnaverse.QnAverse.repositories.FollowRepository;
 import com.qnaverse.QnAverse.repositories.QuestionRepository;
 import com.qnaverse.QnAverse.repositories.UserRepository;
+import com.qnaverse.QnAverse.repositories.LikeRepository;
 import com.qnaverse.QnAverse.utils.FileStorageUtil;
 
 @Service
@@ -24,17 +28,20 @@ public class UserService {
     private final BlockingService blockingService;
     private final QuestionRepository questionRepository;
     private final FileStorageUtil fileStorageUtil;
+    private final LikeRepository likeRepository;
 
     public UserService(UserRepository userRepository,
                        FollowRepository followRepository,
                        BlockingService blockingService,
                        QuestionRepository questionRepository,
-                       FileStorageUtil fileStorageUtil) {
+                       FileStorageUtil fileStorageUtil,
+                       LikeRepository likeRepository) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.blockingService = blockingService;
         this.questionRepository = questionRepository;
         this.fileStorageUtil = fileStorageUtil;
+        this.likeRepository = likeRepository;
     }
 
     // Get User Profile with follow/block flags using the viewer parameter
@@ -101,11 +108,12 @@ public class UserService {
             return ResponseEntity.badRequest().body("User not found");
         }
         User profileUser = userOpt.get();
+
+        // If viewer is not the profile owner, require a follow relationship
         if (viewerUsername != null && !viewerUsername.isBlank()) {
             Optional<User> viewerOpt = userRepository.findByUsername(viewerUsername);
             if (viewerOpt.isPresent()) {
                 User viewer = viewerOpt.get();
-                // If viewer is not the profile owner, require a follow relationship
                 if (!viewer.getUsername().equals(profileUser.getUsername())) {
                     boolean isFollowing = followRepository.findByFollowerAndFollowing(viewer, profileUser).isPresent();
                     if (!isFollowing) {
@@ -119,6 +127,41 @@ public class UserService {
             }
         }
         List<Question> posts = questionRepository.findByUserIdsApproved(List.of(profileUser.getId()));
-        return ResponseEntity.ok(posts);
+        // Determine the viewer: if none provided, assume profile owner
+        User viewer = viewerUsername != null && !viewerUsername.isBlank()
+                ? userRepository.findByUsername(viewerUsername).orElse(profileUser)
+                : profileUser;
+
+        List<QuestionDTO> dtos = posts.stream()
+                                      .map(q -> createQuestionDTO(q, viewer))
+                                      .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    private QuestionDTO createQuestionDTO(Question q, User currentUser) {
+        QuestionDTO dto = new QuestionDTO();
+        dto.setId(q.getId());
+        dto.setContent(q.getContent());
+        dto.setUsername(q.getUser().getUsername());
+        dto.setCreatedAt(q.getCreatedAt());
+        dto.setMediaUrl(q.getMediaUrl());
+        dto.setLikes(q.getLikes());
+        dto.setAnswerCount(q.getAnswerCount());
+        // Add the profile picture from the question's user
+        dto.setProfilePicture(q.getUser().getProfilePicture());
+        // Set the userHasLiked flag based on whether the currentUser has liked the question
+        boolean hasLiked = likeRepository.findByUserAndQuestion(currentUser, q).isPresent();
+        dto.setUserHasLiked(hasLiked);
+        // Set following and blocking status
+        boolean isFollowing = followRepository.findByFollowerAndFollowing(currentUser, q.getUser()).isPresent();
+        dto.setIsFollowing(isFollowing);
+        boolean isBlocked = blockingService.isBlockedEitherWay(currentUser, q.getUser());
+        dto.setIsBlocked(isBlocked);
+        // Set tags
+        List<String> tags = q.getQuestionTags().stream()
+                .map(QuestionTag::getTags)
+                .collect(Collectors.toList());
+        dto.setTags(tags);
+        return dto;
     }
 }

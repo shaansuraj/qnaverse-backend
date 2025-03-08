@@ -6,9 +6,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.qnaverse.QnAverse.models.Follow;
+import com.qnaverse.QnAverse.models.FollowKey;
 import com.qnaverse.QnAverse.models.User;
 
-public interface FollowRepository extends JpaRepository<Follow, Long> {
+
+public interface FollowRepository extends JpaRepository<Follow, FollowKey> {
     Optional<Follow> findByFollowerAndFollowing(User follower, User following);
     List<Follow> findByFollower(User follower);
     List<Follow> findByFollowing(User following);

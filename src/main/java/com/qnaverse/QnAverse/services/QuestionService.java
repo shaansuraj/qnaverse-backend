@@ -186,18 +186,29 @@ public class QuestionService {
         dto.setMediaUrl(q.getMediaUrl());
         dto.setLikes(q.getLikes());
         dto.setAnswerCount(q.getAnswerCount());
+        dto.setProfilePicture(q.getUser().getProfilePicture());
+
+    
+        // Set the userHasLiked flag based on whether the currentUser has liked the question
         boolean hasLiked = likeRepository.findByUserAndQuestion(currentUser, q).isPresent();
-        dto.setUserHasLiked(hasLiked);
+        dto.setUserHasLiked(hasLiked);  // This should correctly set whether the user has liked the question or not
+    
+        // Set following and blocking status
         boolean isFollowing = followRepository.findByFollowerAndFollowing(currentUser, q.getUser()).isPresent();
         dto.setIsFollowing(isFollowing);
+        
         boolean isBlocked = blockingService.isBlockedEitherWay(currentUser, q.getUser());
         dto.setIsBlocked(isBlocked);
+    
+        // Set tags
         List<String> tags = q.getQuestionTags().stream()
                 .map(QuestionTag::getTags)
                 .collect(Collectors.toList());
         dto.setTags(tags);
+    
         return dto;
     }
+    
 
     private List<Question> filterBlocked(User viewer, List<Question> questions) {
         List<Question> filtered = new ArrayList<>();
@@ -209,15 +220,27 @@ public class QuestionService {
         return filtered;
     }
 
-    public ResponseEntity<List<Question>> getTrendingQuestions(String tag) {
+    public ResponseEntity<List<QuestionDTO>> getTrendingQuestionsDTO(String tag, String viewerUsername) {
+        Optional<User> viewerOpt = userRepository.findByUsername(viewerUsername);
+        User currentUser = viewerOpt.orElse(null);
+        
         List<Question> questions;
         if (tag != null && !tag.isBlank()) {
             questions = questionRepository.findTrendingByTag(tag.trim());
         } else {
             questions = questionRepository.findTrendingAll();
         }
-        return ResponseEntity.ok(questions);
+        // Optionally limit size if needed
+        if (questions.size() > 20) {
+            questions = questions.subList(0, 20);
+        }
+        
+        List<QuestionDTO> dtos = questions.stream()
+                .map(q -> createQuestionDTO(q, currentUser))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
+    
 
     public ResponseEntity<?> getQuestionDetails(Long id) {
         Optional<Question> questionOpt = questionRepository.findById(id);
@@ -248,6 +271,8 @@ public class QuestionService {
         if (!question.getUser().getUsername().equals(username)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
         }
+        
+        // Update question content and media if provided
         question.setContent(content);
         if (media != null && !media.isEmpty()) {
             if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
@@ -256,6 +281,15 @@ public class QuestionService {
             String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
             question.setMediaUrl(mediaUrl);
         }
+        
+        // Clear existing tag associations before adding new ones
+        if (question.getQuestionTags() != null && !question.getQuestionTags().isEmpty()) {
+            // Remove associations from DB first
+            question.getQuestionTags().forEach(qt -> questionTagRepository.delete(qt));
+            question.getQuestionTags().clear();
+        }
+        
+        // If tags are provided, add them
         if (tags != null && !tags.isEmpty()) {
             // Use a Set to filter out duplicate tag names from the list
             Set<String> uniqueTags = tags.stream()
@@ -280,4 +314,5 @@ public class QuestionService {
         questionRepository.save(question);
         return ResponseEntity.ok("Question edited successfully");
     }
+    
 }

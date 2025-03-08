@@ -15,6 +15,8 @@ public class QuestionDTO {
     private boolean userHasLiked;
     private boolean isFollowing;
     private boolean isBlocked;
+    private String profilePicture;
+
 
     // Getters and Setters
 
@@ -83,5 +85,12 @@ public class QuestionDTO {
     }
     public void setIsBlocked(boolean isBlocked) {
         this.isBlocked = isBlocked;
+    }
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+    
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }
