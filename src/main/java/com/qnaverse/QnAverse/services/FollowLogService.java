@@ -31,4 +31,8 @@ public class FollowLogService {
         FollowLog followLog = new FollowLog(follower, following, action);
         followLogRepository.save(followLog);
     }
+
+    public List<FollowLog> getAllFollowLogs() {
+        return followLogRepository.findAll();
+    }
 }

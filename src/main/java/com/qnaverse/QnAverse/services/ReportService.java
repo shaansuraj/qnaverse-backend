@@ -80,7 +80,6 @@ package com.qnaverse.QnAverse.services;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
@@ -124,61 +123,85 @@ public class ReportService {
      * If content is safe, returns "The content is not sensitive".
      * If content is flagged, auto-hides it.
      */
+    // public ResponseEntity<?> reportContent(String username, Long contentId, String contentType, String reason) {
+    //     Optional<User> userOpt = userRepository.findByUsername(username);
+    //     if (userOpt.isEmpty()) {
+    //         return ResponseEntity.badRequest().body("Reporting user not found");
+    //     }
+    //     User reportedBy = userOpt.get();
+
+    //     if (!contentType.equalsIgnoreCase("QUESTION") && !contentType.equalsIgnoreCase("ANSWER")) {
+    //         return ResponseEntity.badRequest().body("Invalid content type");
+    //     }
+
+    //     Report report = new Report(reportedBy, contentId, contentType.toUpperCase(), reason);
+    //     reportRepository.save(report);
+
+    //     boolean contentSafe = true;
+    //     if (contentType.equalsIgnoreCase("QUESTION")) {
+    //         Optional<Question> qOpt = questionRepository.findById(contentId);
+    //         if (qOpt.isPresent()) {
+    //             Question q = qOpt.get();
+    //             try {
+    //                 Map<String, Object> textModeration = moderatorService.moderateText(q.getContent());
+    //                 boolean textSafe = (Boolean) textModeration.get("safe");
+    //                 contentSafe = textSafe;
+    //                 if (!contentSafe) {
+    //                     q.setApproved(false);
+    //                     questionRepository.save(q);
+    //                 }
+    //             } catch (Exception e) {
+    //                 e.printStackTrace();
+    //             }
+    //         }
+    //     } else if (contentType.equalsIgnoreCase("ANSWER")) {
+    //         Optional<Answer> aOpt = answerRepository.findById(contentId);
+    //         if (aOpt.isPresent()) {
+    //             Answer a = aOpt.get();
+    //             try {
+    //                 Map<String, Object> textModeration = moderatorService.moderateText(a.getContent());
+    //                 contentSafe = (Boolean) textModeration.get("safe");
+    //                 if (!contentSafe) {
+    //                     a.setHidden(true);
+    //                     answerRepository.save(a);
+    //                 }
+    //             } catch (Exception e) {
+    //                 e.printStackTrace();
+    //             }
+    //         }
+    //     }
+
+    //     if (contentSafe) {
+    //         return ResponseEntity.ok("The content is not sensitive.");
+    //     } else {
+    //         return ResponseEntity.ok("Reported successfully. Content is sensitive and has been auto-hidden.");
+    //     }
+    // }
+
     public ResponseEntity<?> reportContent(String username, Long contentId, String contentType, String reason) {
+        // Find the reporting user by username
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Reporting user not found");
         }
         User reportedBy = userOpt.get();
-
+    
+        // Validate content type: must be either QUESTION or ANSWER
         if (!contentType.equalsIgnoreCase("QUESTION") && !contentType.equalsIgnoreCase("ANSWER")) {
             return ResponseEntity.badRequest().body("Invalid content type");
         }
-
+    
+        // Create a new Report and save it
         Report report = new Report(reportedBy, contentId, contentType.toUpperCase(), reason);
         reportRepository.save(report);
-
-        boolean contentSafe = true;
-        if (contentType.equalsIgnoreCase("QUESTION")) {
-            Optional<Question> qOpt = questionRepository.findById(contentId);
-            if (qOpt.isPresent()) {
-                Question q = qOpt.get();
-                try {
-                    Map<String, Object> textModeration = moderatorService.moderateText(q.getContent());
-                    boolean textSafe = (Boolean) textModeration.get("safe");
-                    contentSafe = textSafe;
-                    if (!contentSafe) {
-                        q.setApproved(false);
-                        questionRepository.save(q);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } else if (contentType.equalsIgnoreCase("ANSWER")) {
-            Optional<Answer> aOpt = answerRepository.findById(contentId);
-            if (aOpt.isPresent()) {
-                Answer a = aOpt.get();
-                try {
-                    Map<String, Object> textModeration = moderatorService.moderateText(a.getContent());
-                    contentSafe = (Boolean) textModeration.get("safe");
-                    if (!contentSafe) {
-                        a.setHidden(true);
-                        answerRepository.save(a);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        if (contentSafe) {
-            return ResponseEntity.ok("The content is not sensitive.");
-        } else {
-            return ResponseEntity.ok("Reported successfully. Content is sensitive and has been auto-hidden.");
-        }
+    
+        // Count total reports for the given content
+        long totalReports = reportRepository.countByContentIdAndContentType(contentId, contentType.toUpperCase());
+    
+        // Return a success response with the current total reports
+        return ResponseEntity.ok("Reported successfully. Current total reports = " + totalReports);
     }
-
+    
 
     /**
      * Retrieves enriched report details for the given content type.

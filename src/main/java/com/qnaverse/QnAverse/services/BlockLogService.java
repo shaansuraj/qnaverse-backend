@@ -60,4 +60,8 @@ public class BlockLogService {
         List<BlockLog> logs = getBlockLogsByUser(username);
         return logs.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
+
+        public List<BlockLog> getAllBlockLogs() {
+        return blockLogRepository.findAll();
+    }
 }

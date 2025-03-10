@@ -3,6 +3,7 @@ package com.qnaverse.QnAverse.services;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +18,17 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final FollowLogService followLogService;  // Inject FollowLogService
 
+    @Autowired
     public FollowService(FollowRepository followRepository,
                          UserRepository userRepository,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         FollowLogService followLogService) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.followLogService = followLogService;
     }
 
     public ResponseEntity<?> followUser(String followerUsername, String followingUsername) {
@@ -43,6 +48,10 @@ public class FollowService {
 
         Follow follow = new Follow(follower, following);
         followRepository.save(follow);
+        
+        // Log the follow action
+        followLogService.logFollowAction(follower, following, "follow");
+        
         // Create a notification for the followed user
         notificationService.createNotification(following.getUsername(), "You have a new follower: " + follower.getUsername());
         return ResponseEntity.ok("Followed successfully");
@@ -61,6 +70,10 @@ public class FollowService {
         User following = followingOpt.get();
 
         followRepository.deleteByFollowerAndFollowing(follower, following);
+        
+        // Log the unfollow action
+        followLogService.logFollowAction(follower, following, "unfollow");
+        
         return ResponseEntity.ok("Unfollowed successfully");
     }
 

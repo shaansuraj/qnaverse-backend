@@ -182,6 +182,168 @@ import com.qnaverse.QnAverse.models.Like;
          * If both text and media (if provided) are safe, the question is auto-approved.
          * Otherwise, it remains pending admin approval and the user is notified with details.
          */
+        // public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
+        //     Optional<User> userOptional = userRepository.findByUsername(username);
+        //     if (userOptional.isEmpty()) {
+        //         return ResponseEntity.badRequest().body("User not found");
+        //     }
+        //     User user = userOptional.get();
+        //     Question question = new Question(user, content);
+        //     question.setCreatedAt(new Date());
+            
+        //     boolean textSafe = false;
+        //     String moderationNotification = "";
+        //     try {
+        //         Map<String, Object> textModeration = moderatorService.moderateText(content);
+        //         textSafe = (Boolean) textModeration.get("safe");
+        //         if (!textSafe && textModeration.containsKey("flaggedCategories")) {
+        //             moderationNotification += "Text flagged for: " + textModeration.get("flaggedCategories") + ". ";
+        //         }
+        //     } catch (Exception e) {
+        //         e.printStackTrace();
+        //     }
+            
+        //     boolean mediaSafe = true;
+        //     if (media != null && !media.isEmpty()) {
+        //         try {
+        //             Map<String, Object> imageModeration = moderatorService.moderateImage(media);
+        //             mediaSafe = (Boolean) imageModeration.get("safe");
+        //             if (!mediaSafe) {
+        //                 moderationNotification += "Image content flagged. ";
+        //             }
+        //             if (mediaSafe) {
+        //                 String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+        //                 question.setMediaUrl(mediaUrl);
+        //             }
+        //         } catch (Exception e) {
+        //             e.printStackTrace();
+        //             mediaSafe = false;
+        //         }
+        //     }
+            
+        //     if (textSafe && mediaSafe) {
+        //         question.setApproved(true);
+        //     } else {
+        //         question.setApproved(false);
+        //         String notifyMsg = "Your question contains sensitive content: ";
+        //         if (!textSafe) {
+        //             notifyMsg += "Text issues. ";
+        //         }
+        //         if (!mediaSafe) {
+        //             notifyMsg += "Image issues. ";
+        //         }
+        //         notifyMsg += "It is under review.";
+        //         notificationService.createNotification(user.getUsername(), notifyMsg);
+        //     }
+            
+        //     questionRepository.save(question);
+            
+        //     if (tags != null && !tags.isEmpty()) {
+        //         for (String tagStr : tags) {
+        //             if (tagStr == null || tagStr.isBlank())
+        //                 continue;
+        //             Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+        //             if (found == null) {
+        //                 found = new Tag(tagStr.trim());
+        //                 found = tagRepository.save(found);
+        //             }
+        //             QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+        //             questionTagRepository.save(qt);
+        //             question.getQuestionTags().add(qt);
+        //         }
+        //     }
+            
+        //     notifyMentionedUsers(user, question);
+            
+        //     String responseMessage = question.isApproved() ? "Question submitted and auto-approved." : "Question submitted for admin review due to sensitive content.";
+        //     return ResponseEntity.ok(responseMessage);
+        // }
+
+        // public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
+        //     Optional<User> userOptional = userRepository.findByUsername(username);
+        //     if (userOptional.isEmpty()) {
+        //         return ResponseEntity.badRequest().body("User not found");
+        //     }
+        //     User user = userOptional.get();
+        //     Question question = new Question(user, content);
+        //     question.setCreatedAt(new Date());
+    
+        //     // 1) Moderate text
+        //     boolean textSafe = false;
+        //     String moderationNotification = "";
+        //     try {
+        //         Map<String, Object> textResult = moderatorService.moderateText(content);
+        //         textSafe = (Boolean) textResult.get("safe");
+        //         if (!textSafe && textResult.containsKey("flaggedCategories")) {
+        //             moderationNotification += "Text flagged for: " + textResult.get("flaggedCategories") + ". ";
+        //         }
+        //     } catch (Exception e) {
+        //         e.printStackTrace();
+        //     }
+    
+        //     // 2) Moderate image if present
+        //     boolean mediaSafe = true;
+        //     if (media != null && !media.isEmpty()) {
+        //         try {
+        //             Map<String, Object> imageResult = moderatorService.moderateImage(media);
+        //             mediaSafe = (Boolean) imageResult.get("safe");
+        //             if (!mediaSafe && imageResult.containsKey("flaggedCategories")) {
+        //                 moderationNotification += "Image flagged for: " + imageResult.get("flaggedCategories") + ". ";
+        //             }
+        //             // If image is safe, upload to Cloudinary
+        //             if (mediaSafe) {
+        //                 String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+        //                 question.setMediaUrl(mediaUrl);
+        //             }
+        //         } catch (Exception e) {
+        //             e.printStackTrace();
+        //             mediaSafe = false; // If moderation call fails, treat as unsafe
+        //         }
+        //     }
+    
+        //     // 3) Final approval logic
+        //     if (textSafe && mediaSafe) {
+        //         question.setApproved(true);
+        //     } else {
+        //         question.setApproved(false);
+        //         String notifyMsg = "Your question contains sensitive content: ";
+        //         if (!textSafe) {
+        //             notifyMsg += "Text issues. ";
+        //         }
+        //         if (!mediaSafe) {
+        //             notifyMsg += "Image issues. ";
+        //         }
+        //         notifyMsg += "It is under review.";
+        //         notificationService.createNotification(user.getUsername(), notifyMsg);
+        //     }
+    
+        //     questionRepository.save(question);
+    
+        //     // 4) Save tags
+        //     if (tags != null && !tags.isEmpty()) {
+        //         for (String tagStr : tags) {
+        //             if (tagStr == null || tagStr.isBlank()) continue;
+        //             Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+        //             if (found == null) {
+        //                 found = new Tag(tagStr.trim());
+        //                 found = tagRepository.save(found);
+        //             }
+        //             QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+        //             questionTagRepository.save(qt);
+        //             question.getQuestionTags().add(qt);
+        //         }
+        //     }
+    
+        //     // 5) Notify any mentioned users
+        //     notifyMentionedUsers(user, question);
+    
+        //     String responseMessage = question.isApproved()
+        //         ? "Question submitted and auto-approved."
+        //         : "Question submitted for admin review due to sensitive content.";
+        //     return ResponseEntity.ok(responseMessage);
+        // }
+    
+
         public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
             Optional<User> userOptional = userRepository.findByUsername(username);
             if (userOptional.isEmpty()) {
@@ -190,54 +352,57 @@ import com.qnaverse.QnAverse.models.Like;
             User user = userOptional.get();
             Question question = new Question(user, content);
             question.setCreatedAt(new Date());
-            
-            boolean textSafe = false;
-            String moderationNotification = "";
+        
+            boolean textSafe = true;
+            boolean imageSafe = true;
+            StringBuilder flaggedInfo = new StringBuilder();
+        
+            // 1) Moderate text content using the ModeratorService.
             try {
-                Map<String, Object> textModeration = moderatorService.moderateText(content);
-                textSafe = (Boolean) textModeration.get("safe");
-                if (!textSafe && textModeration.containsKey("flaggedCategories")) {
-                    moderationNotification += "Text flagged for: " + textModeration.get("flaggedCategories") + ". ";
+                @SuppressWarnings("unchecked")
+                Map<String, Object> textResult = (Map<String, Object>) moderatorService.moderateText(content);
+                textSafe = (Boolean) textResult.get("safe");
+                if (!textSafe && textResult.containsKey("flaggedCategories")) {
+                    flaggedInfo.append("Text flagged for: ").append(textResult.get("flaggedCategories")).append(". ");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                textSafe = false;
             }
-            
-            boolean mediaSafe = true;
+        
+            // 2) If media is provided, upload it to Cloudinary and moderate via URL.
+            String uploadedMediaUrl = null;
             if (media != null && !media.isEmpty()) {
+                uploadedMediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
                 try {
-                    Map<String, Object> imageModeration = moderatorService.moderateImage(media);
-                    mediaSafe = (Boolean) imageModeration.get("safe");
-                    if (!mediaSafe) {
-                        moderationNotification += "Image content flagged. ";
-                    }
-                    if (mediaSafe) {
-                        String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
-                        question.setMediaUrl(mediaUrl);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> imageResult = (Map<String, Object>) moderatorService.moderateImageUrl(uploadedMediaUrl);
+                    imageSafe = (Boolean) imageResult.get("safe");
+                    if (!imageSafe && imageResult.containsKey("flaggedCategories")) {
+                        flaggedInfo.append("Image flagged for: ").append(imageResult.get("flaggedCategories")).append(". ");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    mediaSafe = false;
+                    imageSafe = false;
                 }
             }
-            
-            if (textSafe && mediaSafe) {
+        
+            // 3) Decide approval status. If any content is flagged, mark question unapproved
+            // but retain the media URL so the admin can review it.
+            if (textSafe && imageSafe) {
                 question.setApproved(true);
             } else {
                 question.setApproved(false);
-                String notifyMsg = "Your question contains sensitive content: ";
-                if (!textSafe) {
-                    notifyMsg += "Text issues. ";
-                }
-                if (!mediaSafe) {
-                    notifyMsg += "Image issues. ";
-                }
-                notifyMsg += "It is under review.";
+                String notifyMsg = "Your question contains sensitive content: " + flaggedInfo.toString() + "It is under review.";
                 notificationService.createNotification(user.getUsername(), notifyMsg);
             }
-            
+            if (uploadedMediaUrl != null) {
+                question.setMediaUrl(uploadedMediaUrl);
+            }
+        
             questionRepository.save(question);
-            
+        
+            // 4) Save tags if provided
             if (tags != null && !tags.isEmpty()) {
                 for (String tagStr : tags) {
                     if (tagStr == null || tagStr.isBlank())
@@ -252,10 +417,13 @@ import com.qnaverse.QnAverse.models.Like;
                     question.getQuestionTags().add(qt);
                 }
             }
-            
+        
+            // 5) Notify any mentioned users found in the question content.
             notifyMentionedUsers(user, question);
-            
-            String responseMessage = question.isApproved() ? "Question submitted and auto-approved." : "Question submitted for admin review due to sensitive content.";
+        
+            String responseMessage = question.isApproved()
+                    ? "Question submitted and auto-approved."
+                    : "Question submitted for admin review due to sensitive content.";
             return ResponseEntity.ok(responseMessage);
         }
 
@@ -429,6 +597,159 @@ import com.qnaverse.QnAverse.models.Like;
                     .collect(Collectors.toList());
     }
 
+    // public ResponseEntity<?> editQuestion(Long questionId, String content, List<String> tags, MultipartFile media, String username) {
+    //     Optional<Question> questionOpt = questionRepository.findById(questionId);
+    //     if (questionOpt.isEmpty()) {
+    //         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
+    //     }
+    //     Question question = questionOpt.get();
+    //     if (!question.getUser().getUsername().equals(username)) {
+    //         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
+    //     }
+        
+    //     // Update question content and media if provided
+    //     question.setContent(content);
+    //     if (media != null && !media.isEmpty()) {
+    //         if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
+    //             fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+    //         }
+    //         String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+    //         question.setMediaUrl(mediaUrl);
+    //     }
+        
+    //     // Clear existing tag associations before adding new ones
+    //     if (question.getQuestionTags() != null && !question.getQuestionTags().isEmpty()) {
+    //         // Remove associations from DB first
+    //         question.getQuestionTags().forEach(qt -> questionTagRepository.delete(qt));
+    //         question.getQuestionTags().clear();
+    //     }
+        
+    //     // If tags are provided, add them
+    //     if (tags != null && !tags.isEmpty()) {
+    //         // Use a Set to filter out duplicate tag names from the list
+    //         Set<String> uniqueTags = tags.stream()
+    //                                      .map(String::trim)
+    //                                      .filter(tag -> !tag.isBlank())
+    //                                      .collect(Collectors.toSet());
+    //         for (String tagStr : uniqueTags) {
+    //             // Check if the tag already exists
+    //             Tag found = tagRepository.findByTagNameIgnoreCase(tagStr).orElse(null);
+    //             if (found == null) {
+    //                 // Only create a new tag if it doesn't exist
+    //                 found = new Tag(tagStr);
+    //                 found = tagRepository.save(found);
+    //             }
+    //             // Create the association using the existing or newly created tag
+    //             QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+    //             questionTagRepository.save(qt);
+    //             question.getQuestionTags().add(qt);
+    //         }
+    //     }
+        
+    //     questionRepository.save(question);
+    //     return ResponseEntity.ok("Question edited successfully");
+    // } 
+
+
+    /**
+     * Edits a question and re-runs moderation. If flagged, question remains unapproved.
+     */
+    // public ResponseEntity<?> editQuestion(Long questionId, String content, List<String> tags, MultipartFile media, String username) {
+    //     Optional<Question> questionOpt = questionRepository.findById(questionId);
+    //     if (questionOpt.isEmpty()) {
+    //         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
+    //     }
+    //     Question question = questionOpt.get();
+    //     if (!question.getUser().getUsername().equals(username)) {
+    //         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
+    //     }
+
+    //     // 1) Moderate new text
+    //     boolean textSafe = true;
+    //     boolean mediaSafe = true;
+    //     StringBuilder flaggedInfo = new StringBuilder();
+
+    //     try {
+    //         Map<String, Object> textResult = moderatorService.moderateText(content);
+    //         textSafe = (Boolean) textResult.get("safe");
+    //         if (!textSafe && textResult.containsKey("flaggedCategories")) {
+    //             flaggedInfo.append("Text flagged for: ").append(textResult.get("flaggedCategories")).append(". ");
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         textSafe = false;
+    //     }
+
+    //     // 2) If new media is provided, moderate it
+    //     String newMediaUrl = null;
+    //     if (media != null && !media.isEmpty()) {
+    //         try {
+    //             Map<String, Object> imageResult = moderatorService.moderateImage(media);
+    //             mediaSafe = (Boolean) imageResult.get("safe");
+    //             if (!mediaSafe && imageResult.containsKey("flaggedCategories")) {
+    //                 flaggedInfo.append("Image flagged for: ").append(imageResult.get("flaggedCategories")).append(". ");
+    //             }
+    //             // If safe, upload to Cloudinary
+    //             if (mediaSafe) {
+    //                 // Delete old media from Cloudinary if it exists
+    //                 if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
+    //                     fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+    //                 }
+    //                 newMediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+    //             }
+    //         } catch (Exception e) {
+    //             e.printStackTrace();
+    //             mediaSafe = false;
+    //         }
+    //     }
+
+    //     // 3) If text and image are safe, approve; else unapprove + notify
+    //     if (textSafe && mediaSafe) {
+    //         question.setApproved(true);
+    //     } else {
+    //         question.setApproved(false);
+    //         String notifyMsg = "Your edited question was flagged: " + flaggedInfo.toString() + "It is under review.";
+    //         notificationService.createNotification(username, notifyMsg);
+    //     }
+
+    //     // 4) Update content + media
+    //     question.setContent(content);
+    //     if (newMediaUrl != null) {
+    //         question.setMediaUrl(newMediaUrl);
+    //     }
+
+    //     // 5) Clear existing tag associations before adding new ones
+    //     if (question.getQuestionTags() != null && !question.getQuestionTags().isEmpty()) {
+    //         question.getQuestionTags().forEach(qt -> questionTagRepository.delete(qt));
+    //         question.getQuestionTags().clear();
+    //     }
+
+    //     // 6) Re-add tags
+    //     if (tags != null && !tags.isEmpty()) {
+    //         Set<String> uniqueTags = tags.stream()
+    //                 .map(String::trim)
+    //                 .filter(tag -> !tag.isBlank())
+    //                 .collect(Collectors.toSet());
+    //         for (String tagStr : uniqueTags) {
+    //             Tag found = tagRepository.findByTagNameIgnoreCase(tagStr).orElse(null);
+    //             if (found == null) {
+    //                 found = new Tag(tagStr);
+    //                 found = tagRepository.save(found);
+    //             }
+    //             QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+    //             questionTagRepository.save(qt);
+    //             question.getQuestionTags().add(qt);
+    //         }
+    //     }
+
+    //     questionRepository.save(question);
+    //     return ResponseEntity.ok("Question edited successfully");
+    // }
+
+        /**
+     * Edits a question and re-runs moderation.
+     * If flagged, the question remains unapproved, but the new image (if any) is retained for admin review.
+     */
     public ResponseEntity<?> editQuestion(Long questionId, String content, List<String> tags, MultipartFile media, String username) {
         Optional<Question> questionOpt = questionRepository.findById(questionId);
         if (questionOpt.isEmpty()) {
@@ -438,50 +759,87 @@ import com.qnaverse.QnAverse.models.Like;
         if (!question.getUser().getUsername().equals(username)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot edit another user's question");
         }
-        
-        // Update question content and media if provided
-        question.setContent(content);
-        if (media != null && !media.isEmpty()) {
-            if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
-                fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+    
+        boolean textSafe = true;
+        boolean imageSafe = true;
+        StringBuilder flaggedInfo = new StringBuilder();
+    
+        // 1) Moderate new text content.
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> textResult = (Map<String, Object>) moderatorService.moderateText(content);
+            textSafe = (Boolean) textResult.get("safe");
+            if (!textSafe && textResult.containsKey("flaggedCategories")) {
+                flaggedInfo.append("Text flagged for: ").append(textResult.get("flaggedCategories")).append(". ");
             }
-            String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
-            question.setMediaUrl(mediaUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+            textSafe = false;
         }
-        
-        // Clear existing tag associations before adding new ones
+    
+        // 2) If a new image is provided, upload and moderate it.
+        String newMediaUrl = null;
+        if (media != null && !media.isEmpty()) {
+            newMediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> imageResult = (Map<String, Object>) moderatorService.moderateImageUrl(newMediaUrl);
+                imageSafe = (Boolean) imageResult.get("safe");
+                if (!imageSafe && imageResult.containsKey("flaggedCategories")) {
+                    flaggedInfo.append("Image flagged for: ").append(imageResult.get("flaggedCategories")).append(". ");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                imageSafe = false;
+            }
+        }
+    
+        // 3) Set approval status.
+        if (textSafe && imageSafe) {
+            question.setApproved(true);
+            if (newMediaUrl != null) {
+                // Delete the old image only if it exists and is different from the new one.
+                if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty() &&
+                        !question.getMediaUrl().equals(newMediaUrl)) {
+                    fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+                }
+                question.setMediaUrl(newMediaUrl);
+            }
+        } else {
+            question.setApproved(false);
+            // Do not delete the new image if flagged so that admin can review it.
+            String notifyMsg = "Your edited question was flagged: " + flaggedInfo.toString() + "It is under review.";
+            notificationService.createNotification(username, notifyMsg);
+        }
+    
+        // 4) Update text content.
+        question.setContent(content);
+    
+        // 5) Clear existing tags and add new ones.
         if (question.getQuestionTags() != null && !question.getQuestionTags().isEmpty()) {
-            // Remove associations from DB first
             question.getQuestionTags().forEach(qt -> questionTagRepository.delete(qt));
             question.getQuestionTags().clear();
         }
-        
-        // If tags are provided, add them
         if (tags != null && !tags.isEmpty()) {
-            // Use a Set to filter out duplicate tag names from the list
             Set<String> uniqueTags = tags.stream()
-                                         .map(String::trim)
-                                         .filter(tag -> !tag.isBlank())
-                                         .collect(Collectors.toSet());
+                    .map(String::trim)
+                    .filter(tag -> !tag.isBlank())
+                    .collect(Collectors.toSet());
             for (String tagStr : uniqueTags) {
-                // Check if the tag already exists
                 Tag found = tagRepository.findByTagNameIgnoreCase(tagStr).orElse(null);
                 if (found == null) {
-                    // Only create a new tag if it doesn't exist
                     found = new Tag(tagStr);
                     found = tagRepository.save(found);
                 }
-                // Create the association using the existing or newly created tag
                 QuestionTag qt = new QuestionTag(question, found, found.getTagName());
                 questionTagRepository.save(qt);
                 question.getQuestionTags().add(qt);
             }
         }
-        
+    
         questionRepository.save(question);
         return ResponseEntity.ok("Question edited successfully");
     }
-
     /**
      * Delete a question (for the question owner).
      */
