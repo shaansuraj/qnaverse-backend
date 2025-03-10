@@ -1,3 +1,82 @@
+// package com.qnaverse.QnAverse.services;
+
+// import java.util.ArrayList;
+// import java.util.List;
+// import java.util.Optional;
+// import java.util.regex.Matcher;
+// import java.util.regex.Pattern;
+// import org.springframework.http.ResponseEntity;
+// import org.springframework.stereotype.Service;
+
+// import com.qnaverse.QnAverse.dto.AnswerDTO;
+// import com.qnaverse.QnAverse.models.Answer;
+// import com.qnaverse.QnAverse.models.AnswerVote;
+// import com.qnaverse.QnAverse.models.AnswerVote.VoteType;
+// import com.qnaverse.QnAverse.models.Question;
+// import com.qnaverse.QnAverse.models.User;
+// import com.qnaverse.QnAverse.repositories.AnswerRepository;
+// import com.qnaverse.QnAverse.repositories.AnswerVoteRepository;
+// import com.qnaverse.QnAverse.repositories.QuestionRepository;
+// import com.qnaverse.QnAverse.repositories.UserRepository;
+
+// @Service
+// public class AnswerService {
+
+//     private final AnswerRepository answerRepository;
+//     private final QuestionRepository questionRepository;
+//     private final UserRepository userRepository;
+//     private final AnswerVoteRepository answerVoteRepository;
+//     private final BlockingService blockingService;
+//     private final NotificationService notificationService;
+
+//     public AnswerService(AnswerRepository answerRepository,
+//                          QuestionRepository questionRepository,
+//                          UserRepository userRepository,
+//                          AnswerVoteRepository answerVoteRepository,
+//                          BlockingService blockingService,
+//                          NotificationService notificationService) {
+//         this.answerRepository = answerRepository;
+//         this.questionRepository = questionRepository;
+//         this.userRepository = userRepository;
+//         this.answerVoteRepository = answerVoteRepository;
+//         this.blockingService = blockingService;
+//         this.notificationService = notificationService;
+//     }
+
+//     /**
+//      * Submits an answer to a question and notifies the question owner.
+//      * Also scans the answer content for @username mentions and notifies those users.
+//      */
+//     public ResponseEntity<?> submitAnswer(String username, Long questionId, AnswerDTO answerDTO) {
+//         Optional<User> userOptional = userRepository.findByUsername(username);
+//         Optional<Question> questionOptional = questionRepository.findById(questionId);
+//         if (userOptional.isEmpty() || questionOptional.isEmpty()) {
+//             return ResponseEntity.badRequest().body("Invalid user or question");
+//         }
+//         User user = userOptional.get();
+//         Question question = questionOptional.get();
+//         if (blockingService.isBlockedEitherWay(user, question.getUser())) {
+//             return ResponseEntity.badRequest().body("You are blocked or the user is blocked. Cannot answer.");
+//         }
+//         if (!question.isApproved()) {
+//             return ResponseEntity.badRequest().body("Question not yet approved by admin.");
+//         }
+//         Answer answer = new Answer(question, user, answerDTO.getContent());
+//         answerRepository.save(answer);
+        
+//         // Notify question owner about new answer
+//         notificationService.createNotification(question.getUser().getUsername(),
+//                 "Your question was answered by " + username + ".");
+//         // Notify any mentioned users in the answer content
+//         notifyMentionedUsers(user, answer);
+//         // Increment persisted answer count on the question
+//         question.setAnswerCount(question.getAnswerCount() + 1);
+//         questionRepository.save(question);
+        
+//         return ResponseEntity.ok("Answer submitted successfully.");
+//     }
+
+
 package com.qnaverse.QnAverse.services;
 
 import java.util.ArrayList;
@@ -5,6 +84,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -28,24 +108,27 @@ public class AnswerService {
     private final AnswerVoteRepository answerVoteRepository;
     private final BlockingService blockingService;
     private final NotificationService notificationService;
+    private final ModeratorService moderatorService; // Inject moderator service
 
     public AnswerService(AnswerRepository answerRepository,
                          QuestionRepository questionRepository,
                          UserRepository userRepository,
                          AnswerVoteRepository answerVoteRepository,
                          BlockingService blockingService,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         ModeratorService moderatorService) {
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
         this.answerVoteRepository = answerVoteRepository;
         this.blockingService = blockingService;
         this.notificationService = notificationService;
+        this.moderatorService = moderatorService;
     }
 
     /**
-     * Submits an answer to a question and notifies the question owner.
-     * Also scans the answer content for @username mentions and notifies those users.
+     * Submits an answer to a question.
+     * Moderates the answer text; if it is flagged as sensitive, returns an error message (with flagged categories if available).
      */
     public ResponseEntity<?> submitAnswer(String username, Long questionId, AnswerDTO answerDTO) {
         Optional<User> userOptional = userRepository.findByUsername(username);
@@ -61,9 +144,29 @@ public class AnswerService {
         if (!question.isApproved()) {
             return ResponseEntity.badRequest().body("Question not yet approved by admin.");
         }
+
+        // Moderate answer text using the direct call to RapidAPI via ModeratorService
+        boolean textSafe = false;
+        String flaggedInfo = "";
+        try {
+            // The moderator service returns a Map with keys "safe" and optionally "flaggedCategories"
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> moderationResult = (java.util.Map<String, Object>) moderatorService.moderateText(answerDTO.getContent());
+            textSafe = (Boolean) moderationResult.get("safe");
+            if (!textSafe && moderationResult.containsKey("flaggedCategories")) {
+                flaggedInfo = " Flagged for: " + moderationResult.get("flaggedCategories");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (!textSafe) {
+            return ResponseEntity.badRequest()
+                    .body("Your answer contains sensitive data." + flaggedInfo + " Please ensure your content is professional.");
+        }
+
         Answer answer = new Answer(question, user, answerDTO.getContent());
         answerRepository.save(answer);
-        
+
         // Notify question owner about new answer
         notificationService.createNotification(question.getUser().getUsername(),
                 "Your question was answered by " + username + ".");
@@ -72,9 +175,10 @@ public class AnswerService {
         // Increment persisted answer count on the question
         question.setAnswerCount(question.getAnswerCount() + 1);
         questionRepository.save(question);
-        
+
         return ResponseEntity.ok("Answer submitted successfully.");
     }
+
 
     /**
      * Parses the answer content for @username mentions and sends notifications.

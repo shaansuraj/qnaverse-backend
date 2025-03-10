@@ -1,5 +1,6 @@
 package com.qnaverse.QnAverse.repositories;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,4 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     List<User> findByUsernameContainingIgnoreCase(String username);
+
+    // Added for metrics: count users registered between two dates.
+    long countByCreatedAtBetween(Date start, Date end);
+
 }

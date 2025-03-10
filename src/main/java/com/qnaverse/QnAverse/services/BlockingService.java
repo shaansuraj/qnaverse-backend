@@ -17,10 +17,12 @@ public class BlockingService {
 
     private final BlockedUserRepository blockedRepo;
     private final UserRepository userRepo;
+    private final BlockLogService blockLogService;
 
-    public BlockingService(BlockedUserRepository blockedRepo, UserRepository userRepo) {
+    public BlockingService(BlockedUserRepository blockedRepo, UserRepository userRepo, BlockLogService blockLogService) {
         this.blockedRepo = blockedRepo;
         this.userRepo = userRepo;
+        this.blockLogService = blockLogService;
     }
 
     /**
@@ -29,26 +31,31 @@ public class BlockingService {
     public ResponseEntity<?> blockUser(String blockerUsername, String blockedUsername) {
         Optional<User> blockOpt = userRepo.findByUsername(blockerUsername);
         Optional<User> blockedOpt = userRepo.findByUsername(blockedUsername);
-
+    
         if (blockOpt.isEmpty() || blockedOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Invalid blocker or blocked user");
         }
-
+    
         User block = blockOpt.get();
         User blocked = blockedOpt.get();
         if (block.getId().equals(blocked.getId())) {
             return ResponseEntity.badRequest().body("You cannot block yourself");
         }
-
+    
         Optional<BlockedUser> existing = blockedRepo.findByBlockerAndBlocked(block, blocked);
         if (existing.isPresent()) {
             return ResponseEntity.ok("Already blocked this user");
         }
-
+    
         BlockedUser bu = new BlockedUser(block, blocked);
         blockedRepo.save(bu);
+        
+        // Log the block action
+        blockLogService.logBlockAction(block, blocked, "BLOCKED");
+    
         return ResponseEntity.ok("User blocked successfully");
     }
+    
 
     /**
      * Unblock a user
@@ -56,23 +63,27 @@ public class BlockingService {
     public ResponseEntity<?> unblockUser(String blockerUsername, String blockedUsername) {
         Optional<User> blockOpt = userRepo.findByUsername(blockerUsername);
         Optional<User> blockedOpt = userRepo.findByUsername(blockedUsername);
-
+    
         if (blockOpt.isEmpty() || blockedOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Invalid blocker or blocked user");
         }
-
+    
         User block = blockOpt.get();
         User blocked = blockedOpt.get();
-
+    
         Optional<BlockedUser> existing = blockedRepo.findByBlockerAndBlocked(block, blocked);
         if (existing.isEmpty()) {
             return ResponseEntity.ok("You have not blocked this user yet");
         }
-
+    
         blockedRepo.delete(existing.get());
+        
+        // Log the unblock action
+        blockLogService.logBlockAction(block, blocked, "UNBLOCKED");
+    
         return ResponseEntity.ok("User unblocked");
     }
-
+    
     /**
      * List users that 'blockerUsername' has blocked
      */

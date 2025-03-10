@@ -26,6 +26,8 @@ public class QuestionController {
         this.questionService = questionService;
     }
 
+    //create a question
+
     @PostMapping(value = "/{username}/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createQuestion(
             @PathVariable String username,
@@ -44,15 +46,25 @@ public class QuestionController {
         return questionService.createQuestion(username, content, tags, media);
     }
 
+    //approves a question
     @PutMapping("/approve/{questionId}")
     public ResponseEntity<?> approveQuestion(@PathVariable Long questionId) {
         return questionService.approveQuestion(questionId);
     }
 
+    //rejects a questions
+    @DeleteMapping("/unapprove/{questionId}")
+    public ResponseEntity<?> unapproveQuestion(@PathVariable Long questionId){
+        return questionService.unapproveQuestion(questionId);
+    }
+
+    //get the user feed
     @GetMapping("/feed/{username}")
     public ResponseEntity<?> getUserFeed(@PathVariable String username) {
         return questionService.getUserFeed(username);
     }
+
+    //fetches the trending questions
 
     @GetMapping("/trending")
 public ResponseEntity<List<QuestionDTO>> getTrendingQuestions(
@@ -61,11 +73,13 @@ public ResponseEntity<List<QuestionDTO>> getTrendingQuestions(
     return questionService.getTrendingQuestionsDTO(tag, viewerUsername);
 }
 
-
+    //Prints the details in the question
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getQuestionDetails(@PathVariable Long id) {
         return questionService.getQuestionDetails(id);
     }
+
+    //Lists the likers of the question
 
     @GetMapping("/{id}/likers")
     public ResponseEntity<?> getQuestionLikers(@PathVariable Long id) {
@@ -76,6 +90,8 @@ public ResponseEntity<List<QuestionDTO>> getTrendingQuestions(
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    //Editing the question
 
     @PutMapping("/{username}/edit/{questionId}")
     public ResponseEntity<?> editQuestion(
@@ -94,5 +110,12 @@ public ResponseEntity<List<QuestionDTO>> getTrendingQuestions(
             }
         }
         return questionService.editQuestion(questionId, content, tags, media, username);
+    }
+
+            //delete a question
+    @DeleteMapping("/{username}/delete/{questionId}")
+    public ResponseEntity<?> deleteQuestion(@PathVariable String username,
+                                            @PathVariable Long questionId) {
+        return questionService.deleteQuestion(username, questionId);
     }
 }

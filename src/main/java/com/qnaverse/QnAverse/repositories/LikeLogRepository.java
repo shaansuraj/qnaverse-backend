@@ -1,11 +1,11 @@
-package com.qnaverse.QnAverse.repositories;
+// package com.qnaverse.QnAverse.repositories;
 
-import java.util.List;
+// import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+// import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.qnaverse.QnAverse.models.LikeLog;
+// import com.qnaverse.QnAverse.models.LikeLog;
 
-public interface LikeLogRepository extends JpaRepository<LikeLog, Long> {
-    List<LikeLog> findByUserUsername(String username);  // Custom query for fetching LikeLogs by username
-}
+// public interface LikeLogRepository extends JpaRepository<LikeLog, Long> {
+//     List<LikeLog> findByUserUsername(String username);  // Custom query for fetching LikeLogs by username
+// }

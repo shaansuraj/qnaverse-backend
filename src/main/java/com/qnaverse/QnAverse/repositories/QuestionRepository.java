@@ -1,12 +1,16 @@
 package com.qnaverse.QnAverse.repositories;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.qnaverse.QnAverse.models.Question;
+
+import jakarta.transaction.Transactional;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
@@ -51,5 +55,25 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
            ORDER BY q.likes DESC
            """)
     List<Question> findTrendingByTag(@Param("tag") String tag);
-    
+
+    // Custom delete method for a question by its ID
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Question q WHERE q.id = :questionId")
+    void deleteQuestionById(@Param("questionId") Long questionId);
+
+
+    //Count questions created between two dates
+    long countByCreatedAtBetween(Date start, Date end);
+
+    //Count questions with answer count greater than 0 (answered)
+    long countByAnswerCountGreaterThan(int count);
+
+    //Count questions with answer count equal to 0 (unanswered)
+    long countByAnswerCount(int count);
+
+    //Count by approved true
+    long countByApprovedTrue();
+
 }
+    

@@ -1,14 +1,20 @@
 package com.qnaverse.QnAverse.controllers;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.qnaverse.QnAverse.dto.ReportDTO;
 import com.qnaverse.QnAverse.services.ReportService;
 import com.qnaverse.QnAverse.utils.JwtUtil;
 
-/**
- * Controller for reporting questions/answers.
- */
 @RestController
 @RequestMapping("/api/report")
 public class ReportController {
@@ -23,10 +29,7 @@ public class ReportController {
 
     /**
      * Report a question or answer.
-     * @param token Bearer token
-     * @param contentId ID of question or answer
-     * @param contentType "QUESTION" or "ANSWER"
-     * @param reason one of (Sensitive, Mature, Self-harm, Violence, or any reason)
+     * Example: POST /api/report/18/QUESTION?reason=bad+post
      */
     @PostMapping("/{contentId}/{contentType}")
     public ResponseEntity<?> reportContent(@RequestHeader("Authorization") String token,
@@ -35,6 +38,16 @@ public class ReportController {
                                            @RequestParam String reason) {
         String username = extractUsername(token);
         return reportService.reportContent(username, contentId, contentType, reason);
+    }
+
+    /**
+     * Retrieves enriched report details for a given content type.
+     * Example: GET /api/report/detailed/QUESTION
+     */
+    @GetMapping("/detailed/{contentType}")
+    public ResponseEntity<List<ReportDTO>> getDetailedReports(@PathVariable String contentType) {
+        List<ReportDTO> dtos = reportService.getDetailedReports(contentType);
+        return ResponseEntity.ok(dtos);
     }
 
     private String extractUsername(String bearer) {

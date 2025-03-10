@@ -1,109 +1,263 @@
-package com.qnaverse.QnAverse.services;
+// package com.qnaverse.QnAverse.services;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+// import java.util.ArrayList;
+// import java.util.Collections;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Optional;
+// import java.util.Set;
+// import java.util.regex.Matcher;
+// import java.util.regex.Pattern;
+// import java.util.stream.Collectors;
+
+// import org.springframework.http.HttpStatus;
+// import org.springframework.http.ResponseEntity;
+// import org.springframework.stereotype.Service;
+// import org.springframework.web.multipart.MultipartFile;
+
+// import com.qnaverse.QnAverse.dto.QuestionDTO;
+// import com.qnaverse.QnAverse.exceptions.ResourceNotFoundException;
+// import com.qnaverse.QnAverse.models.Like;
+// import com.qnaverse.QnAverse.models.Question;
+// import com.qnaverse.QnAverse.models.QuestionTag;
+// import com.qnaverse.QnAverse.models.Tag;
+// import com.qnaverse.QnAverse.models.User;
+// import com.qnaverse.QnAverse.repositories.FollowRepository;
+// import com.qnaverse.QnAverse.repositories.LikeRepository;
+// import com.qnaverse.QnAverse.repositories.QuestionRepository;
+// import com.qnaverse.QnAverse.repositories.QuestionTagRepository;
+// import com.qnaverse.QnAverse.repositories.TagRepository;
+// import com.qnaverse.QnAverse.repositories.UserRepository;
+// import com.qnaverse.QnAverse.utils.FileStorageUtil;
+
+// @Service
+// public class QuestionService {
+
+//     private final QuestionRepository questionRepository;
+//     private final UserRepository userRepository;
+//     private final FollowRepository followRepository;
+//     private final BlockingService blockingService;
+//     private final TagRepository tagRepository;
+//     private final QuestionTagRepository questionTagRepository;
+//     private final FileStorageUtil fileStorageUtil;
+//     private final NotificationService notificationService;
+//     private final LikeRepository likeRepository;
+
+//     public QuestionService(QuestionRepository questionRepository,
+//                            UserRepository userRepository,
+//                            FollowRepository followRepository,
+//                            BlockingService blockingService,
+//                            TagRepository tagRepository,
+//                            QuestionTagRepository questionTagRepository,
+//                            FileStorageUtil fileStorageUtil,
+//                            NotificationService notificationService,
+//                            LikeRepository likeRepository) {
+//         this.questionRepository = questionRepository;
+//         this.userRepository = userRepository;
+//         this.followRepository = followRepository;
+//         this.blockingService = blockingService;
+//         this.tagRepository = tagRepository;
+//         this.questionTagRepository = questionTagRepository;
+//         this.fileStorageUtil = fileStorageUtil;
+//         this.notificationService = notificationService;
+//         this.likeRepository = likeRepository;
+//     }
+
+    // /**
+    //  * Creates a new question (pending admin approval) with optional media and tags.
+    //  * Also parses the question content for @username mentions and notifies those users.
+    //  */
+    // public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
+    //     Optional<User> userOptional = userRepository.findByUsername(username);
+    //     if (userOptional.isEmpty()) {
+    //         return ResponseEntity.badRequest().body("User not found");
+    //     }
+    //     User user = userOptional.get();
+    //     Question question = new Question(user, content);
+    //     question.setApproved(false); // Pending approval
+    //     question.setCreatedAt(new java.util.Date());
+
+    //     if (media != null && !media.isEmpty()) {
+    //         String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+    //         question.setMediaUrl(mediaUrl);
+    //     }
+    //     questionRepository.save(question);
+
+    //     if (tags != null && !tags.isEmpty()) {
+    //         for (String tagStr : tags) {
+    //             if (tagStr == null || tagStr.isBlank())
+    //                 continue;
+    //             Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+    //             if (found == null) {
+    //                 found = new Tag(tagStr.trim());
+    //                 found = tagRepository.save(found);
+    //             }
+    //             QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+    //             questionTagRepository.save(qt);
+    //             question.getQuestionTags().add(qt);
+    //         }
+    //     }
+
+    //     notifyMentionedUsers(user, question);
+
+    //     return ResponseEntity.ok("Question submitted for approval.");
+    // }
+
+    package com.qnaverse.QnAverse.services;
+
+    import java.util.ArrayList;
+    import java.util.Collections;
+    import java.util.Date;
+    import java.util.HashMap;
+    import java.util.HashSet;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Optional;
+    import java.util.Set;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+    import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.qnaverse.QnAverse.dto.QuestionDTO;
+    import org.springframework.stereotype.Service;
+    import org.springframework.web.multipart.MultipartFile;
+    
+    import com.qnaverse.QnAverse.dto.QuestionDTO;
 import com.qnaverse.QnAverse.exceptions.ResourceNotFoundException;
 import com.qnaverse.QnAverse.models.Like;
-import com.qnaverse.QnAverse.models.Question;
-import com.qnaverse.QnAverse.models.QuestionTag;
-import com.qnaverse.QnAverse.models.Tag;
-import com.qnaverse.QnAverse.models.User;
-import com.qnaverse.QnAverse.repositories.FollowRepository;
-import com.qnaverse.QnAverse.repositories.LikeRepository;
-import com.qnaverse.QnAverse.repositories.QuestionRepository;
-import com.qnaverse.QnAverse.repositories.QuestionTagRepository;
-import com.qnaverse.QnAverse.repositories.TagRepository;
-import com.qnaverse.QnAverse.repositories.UserRepository;
-import com.qnaverse.QnAverse.utils.FileStorageUtil;
-
-@Service
-public class QuestionService {
-
-    private final QuestionRepository questionRepository;
-    private final UserRepository userRepository;
-    private final FollowRepository followRepository;
-    private final BlockingService blockingService;
-    private final TagRepository tagRepository;
-    private final QuestionTagRepository questionTagRepository;
-    private final FileStorageUtil fileStorageUtil;
-    private final NotificationService notificationService;
-    private final LikeRepository likeRepository;
-
-    public QuestionService(QuestionRepository questionRepository,
-                           UserRepository userRepository,
-                           FollowRepository followRepository,
-                           BlockingService blockingService,
-                           TagRepository tagRepository,
-                           QuestionTagRepository questionTagRepository,
-                           FileStorageUtil fileStorageUtil,
-                           NotificationService notificationService,
-                           LikeRepository likeRepository) {
-        this.questionRepository = questionRepository;
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-        this.blockingService = blockingService;
-        this.tagRepository = tagRepository;
-        this.questionTagRepository = questionTagRepository;
-        this.fileStorageUtil = fileStorageUtil;
-        this.notificationService = notificationService;
-        this.likeRepository = likeRepository;
-    }
-
-    /**
-     * Creates a new question (pending admin approval) with optional media and tags.
-     * Also parses the question content for @username mentions and notifies those users.
-     */
-    public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
-        Optional<User> userOptional = userRepository.findByUsername(username);
-        if (userOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body("User not found");
+    import com.qnaverse.QnAverse.models.Question;
+    import com.qnaverse.QnAverse.models.QuestionTag;
+    import com.qnaverse.QnAverse.models.Tag;
+    import com.qnaverse.QnAverse.models.User;
+    import com.qnaverse.QnAverse.repositories.FollowRepository;
+    import com.qnaverse.QnAverse.repositories.LikeRepository;
+    import com.qnaverse.QnAverse.repositories.QuestionRepository;
+    import com.qnaverse.QnAverse.repositories.QuestionTagRepository;
+    import com.qnaverse.QnAverse.repositories.TagRepository;
+    import com.qnaverse.QnAverse.repositories.UserRepository;
+    import com.qnaverse.QnAverse.utils.FileStorageUtil;
+    
+    @Service
+    public class QuestionService {
+    
+        private final QuestionRepository questionRepository;
+        private final UserRepository userRepository;
+        private final FollowRepository followRepository;
+        private final BlockingService blockingService;
+        private final TagRepository tagRepository;
+        private final QuestionTagRepository questionTagRepository;
+        private final FileStorageUtil fileStorageUtil;
+        private final NotificationService notificationService;
+        private final LikeRepository likeRepository;
+        private final ModeratorService moderatorService; // Using the new moderator service
+    
+        public QuestionService(QuestionRepository questionRepository,
+                               UserRepository userRepository,
+                               FollowRepository followRepository,
+                               BlockingService blockingService,
+                               TagRepository tagRepository,
+                               QuestionTagRepository questionTagRepository,
+                               FileStorageUtil fileStorageUtil,
+                               NotificationService notificationService,
+                               LikeRepository likeRepository,
+                               ModeratorService moderatorService) {
+            this.questionRepository = questionRepository;
+            this.userRepository = userRepository;
+            this.followRepository = followRepository;
+            this.blockingService = blockingService;
+            this.tagRepository = tagRepository;
+            this.questionTagRepository = questionTagRepository;
+            this.fileStorageUtil = fileStorageUtil;
+            this.notificationService = notificationService;
+            this.likeRepository = likeRepository;
+            this.moderatorService = moderatorService;
         }
-        User user = userOptional.get();
-        Question question = new Question(user, content);
-        question.setApproved(false); // Pending approval
-        question.setCreatedAt(new java.util.Date());
-
-        if (media != null && !media.isEmpty()) {
-            String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
-            question.setMediaUrl(mediaUrl);
-        }
-        questionRepository.save(question);
-
-        if (tags != null && !tags.isEmpty()) {
-            for (String tagStr : tags) {
-                if (tagStr == null || tagStr.isBlank())
-                    continue;
-                Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
-                if (found == null) {
-                    found = new Tag(tagStr.trim());
-                    found = tagRepository.save(found);
-                }
-                QuestionTag qt = new QuestionTag(question, found, found.getTagName());
-                questionTagRepository.save(qt);
-                question.getQuestionTags().add(qt);
+    
+        /**
+         * Creates a new question with optional media and tags.
+         * It directly calls the RapidAPI moderation endpoints to check the text and image.
+         * If both text and media (if provided) are safe, the question is auto-approved.
+         * Otherwise, it remains pending admin approval and the user is notified with details.
+         */
+        public ResponseEntity<?> createQuestion(String username, String content, List<String> tags, MultipartFile media) {
+            Optional<User> userOptional = userRepository.findByUsername(username);
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body("User not found");
             }
+            User user = userOptional.get();
+            Question question = new Question(user, content);
+            question.setCreatedAt(new Date());
+            
+            boolean textSafe = false;
+            String moderationNotification = "";
+            try {
+                Map<String, Object> textModeration = moderatorService.moderateText(content);
+                textSafe = (Boolean) textModeration.get("safe");
+                if (!textSafe && textModeration.containsKey("flaggedCategories")) {
+                    moderationNotification += "Text flagged for: " + textModeration.get("flaggedCategories") + ". ";
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            boolean mediaSafe = true;
+            if (media != null && !media.isEmpty()) {
+                try {
+                    Map<String, Object> imageModeration = moderatorService.moderateImage(media);
+                    mediaSafe = (Boolean) imageModeration.get("safe");
+                    if (!mediaSafe) {
+                        moderationNotification += "Image content flagged. ";
+                    }
+                    if (mediaSafe) {
+                        String mediaUrl = fileStorageUtil.saveToCloudinary(media, "question_media");
+                        question.setMediaUrl(mediaUrl);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    mediaSafe = false;
+                }
+            }
+            
+            if (textSafe && mediaSafe) {
+                question.setApproved(true);
+            } else {
+                question.setApproved(false);
+                String notifyMsg = "Your question contains sensitive content: ";
+                if (!textSafe) {
+                    notifyMsg += "Text issues. ";
+                }
+                if (!mediaSafe) {
+                    notifyMsg += "Image issues. ";
+                }
+                notifyMsg += "It is under review.";
+                notificationService.createNotification(user.getUsername(), notifyMsg);
+            }
+            
+            questionRepository.save(question);
+            
+            if (tags != null && !tags.isEmpty()) {
+                for (String tagStr : tags) {
+                    if (tagStr == null || tagStr.isBlank())
+                        continue;
+                    Tag found = tagRepository.findByTagNameIgnoreCase(tagStr.trim()).orElse(null);
+                    if (found == null) {
+                        found = new Tag(tagStr.trim());
+                        found = tagRepository.save(found);
+                    }
+                    QuestionTag qt = new QuestionTag(question, found, found.getTagName());
+                    questionTagRepository.save(qt);
+                    question.getQuestionTags().add(qt);
+                }
+            }
+            
+            notifyMentionedUsers(user, question);
+            
+            String responseMessage = question.isApproved() ? "Question submitted and auto-approved." : "Question submitted for admin review due to sensitive content.";
+            return ResponseEntity.ok(responseMessage);
         }
-
-        notifyMentionedUsers(user, question);
-
-        return ResponseEntity.ok("Question submitted for approval.");
-    }
 
     private void notifyMentionedUsers(User asker, Question question) {
         Pattern pattern = Pattern.compile("@(\\w+)");
@@ -134,6 +288,19 @@ public class QuestionService {
         questionRepository.save(question);
         return ResponseEntity.ok("Question approved.");
     }
+
+     /**
+    * Unapprove a question (Admin only).
+     */
+    public ResponseEntity<?> unapproveQuestion(Long questionId) {
+        Optional<Question> questionOptional = questionRepository.findById(questionId);
+        if (questionOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Question not found");
+        }
+    // Delete the question instead of simply unapproving it
+        questionRepository.deleteQuestionById(questionId);
+        return ResponseEntity.ok("Question unapproved and deleted.");
+        }
 
     /**
      * Returns the feed for a user – combining questions from followed users and trending questions.
@@ -313,6 +480,25 @@ public class QuestionService {
         
         questionRepository.save(question);
         return ResponseEntity.ok("Question edited successfully");
+    }
+
+    /**
+     * Delete a question (for the question owner).
+     */
+    public ResponseEntity<?> deleteQuestion(String username, Long questionId) {
+        Optional<Question> questionOpt = questionRepository.findById(questionId);
+        if (questionOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Question not found");
+        }
+        Question question = questionOpt.get();
+        if (!question.getUser().getUsername().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot delete another user's question");
+        }
+        if (question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()) {
+            fileStorageUtil.deleteFromCloudinary(question.getMediaUrl());
+        }
+        questionRepository.delete(question);
+        return ResponseEntity.ok("Question deleted successfully");
     }
     
 }
