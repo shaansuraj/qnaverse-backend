@@ -117,8 +117,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedOrigins(List.of("https://qnaverse-frontend.vercel.app/"));
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("https://qnaverse.netlify.app"));
+        // configuration.setAllowedOrigins(List.of("http://localhost:5173"));
     
 
         // configuration.setAllowedOrigins(List.of("*"));
