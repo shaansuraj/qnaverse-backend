@@ -201,6 +201,7 @@ public class SecurityConfig {
 public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider provider) throws Exception {
 
         http
+            .requiresChannel(channel -> channel.anyRequest().requiresSecure())
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             )
@@ -244,7 +245,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allowed origins (Update these with your frontend URLs)
-        configuration.setAllowedOrigins(List.of("https://qnaverse.netlify.app", "http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("https://qnaverse.netlify.app"));
         
         // Allowed request methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
