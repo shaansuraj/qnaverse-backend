@@ -18,7 +18,7 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final FollowLogService followLogService;  // Inject FollowLogService
+    private final FollowLogService followLogService;  
 
     @Autowired
     public FollowService(FollowRepository followRepository,
