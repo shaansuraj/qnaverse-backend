@@ -202,9 +202,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
 
         http
             .requiresChannel(channel -> channel.anyRequest().requiresSecure())
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            )
+            .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(provider)
