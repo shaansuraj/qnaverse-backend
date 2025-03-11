@@ -18,7 +18,7 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
     // Example base64-encoded key. Use application.properties or env variables in real projects.
-    private final String SECRET_KEY = "U3VwZXJTZWNyZXRLZXlGb3JKV1QxMjM0NTY3ODkw";
+    private static final String SECRET_KEY = System.getenv("JWT_SECRET");
     private final long EXPIRATION_TIME = 86400000; // 1 day in milliseconds
 
     private Key getSigningKey() {

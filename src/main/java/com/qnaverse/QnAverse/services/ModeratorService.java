@@ -20,8 +20,8 @@ public class ModeratorService {
     // Sightengine API endpoints and credentials
     private static final String TEXT_MODERATION_URL = "https://api.sightengine.com/1.0/text/check.json";
     private static final String IMAGE_MODERATION_URL = "https://api.sightengine.com/1.0/check.json";
-    private static final String API_USER = "484426288";
-    private static final String API_SECRET = "xLem8sS9BRg8HTQn7EchYXMPxnqJdqJy";
+    private static final String API_USER = System.getenv("SIGHTENGINE_API_USER");
+    private static final String API_SECRET = System.getenv("SIGHTENGINE_API_SECRET");
 
     // Thresholds for safe content determination
     private static final double TEXT_THRESHOLD = 0.5;

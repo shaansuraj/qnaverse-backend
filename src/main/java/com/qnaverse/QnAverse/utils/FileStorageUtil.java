@@ -1,12 +1,13 @@
 package com.qnaverse.QnAverse.utils;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
+import java.io.IOException;
+import java.util.Map;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.Map;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 @Component
 public class FileStorageUtil {
@@ -16,9 +17,9 @@ public class FileStorageUtil {
 
     public FileStorageUtil() {
         cloudinary = new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", "dtxm0dakw",  
-                "api_key", "746833368733947",     
-                "api_secret", "88zqe-DJvTHET7JTgIpS8W3hoBc" 
+                "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME"),
+                "api_key", System.getenv("CLOUDINARY_API_KEY"),
+                "api_secret", System.getenv("CLOUDINARY_API_SECRET")
         ));
     }
 
