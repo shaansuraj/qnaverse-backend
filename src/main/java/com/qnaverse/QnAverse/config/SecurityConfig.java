@@ -246,7 +246,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allowed origins (Update these with your frontend URLs)
-        configuration.setAllowedOrigins(List.of("https://qnaverse.netlify.app"));
+        configuration.setAllowedOrigins(List.of("https://qnaverse.netlify.app", "http://localhost:5173"));
         
         // Allowed request methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
