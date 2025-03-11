@@ -153,7 +153,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -217,8 +216,6 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
                 .hasAnyAuthority("user", "admin")
                 .anyRequest().permitAll()
             )
-            .formLogin(form -> form.disable())
-            // ✅ Manually set SameSite=None in response headers
             .headers(headers -> headers
             .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy", "upgrade-insecure-requests"))
         );
