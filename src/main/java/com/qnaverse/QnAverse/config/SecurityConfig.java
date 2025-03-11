@@ -207,7 +207,6 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .formLogin(form -> form.disable())
             .authenticationProvider(provider)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
@@ -220,6 +219,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
                 .hasAnyAuthority("user", "admin")
                 .anyRequest().permitAll()
             )
+            .formLogin(form -> form.disable())
             // ✅ Manually set SameSite=None in response headers
             .headers(headers -> headers
             .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy", "upgrade-insecure-requests"))
