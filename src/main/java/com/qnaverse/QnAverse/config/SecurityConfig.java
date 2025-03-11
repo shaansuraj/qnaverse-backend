@@ -222,8 +222,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, Authentication
             )
             // ✅ Manually set SameSite=None in response headers
             .headers(headers -> headers
-                .addHeaderWriter(new StaticHeadersWriter("Set-Cookie", "XSRF-TOKEN=; Path=/; Secure; HttpOnly; SameSite=None"))
-            );
+            .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy", "upgrade-insecure-requests"))
+        );
 
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
